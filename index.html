@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MINILOCK - Tool Game</title>
+
+    <!-- ===== TẢI FONTS TRỰC TIẾP ===== -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- ===== FIREBASE SDK - TẢI TRỰC TIẾP ===== -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js">
+    </script>
+
+    <style>
+        /* ===== ALL CSS ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #e8f4f8;
+            color: #0a2a3a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bubbles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -50px;
+            background: rgba(0, 150, 255, 0.04);
+            border-radius: 50%;
+            animation: floatBubble linear infinite;
+        }
+
+        @keyframes floatBubble {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-110vh) scale(0.2);
+                opacity: 0;
+            }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 50%, rgba(0, 100, 255, 0.03) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 24px 20px 28px;
+            box-shadow: 0 20px 60px rgba(0, 50, 150, 0.08), 0 0 40px rgba(0, 100, 255, 0.04);
+            border: 1px solid rgba(0, 150, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0066ff, #00ccff, #0066ff);
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.3);
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(0, 150, 255, 0.06);
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 100, 255, 0.25);
+        }
+
+        .brand-text {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0a2a3a;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-text span {
+            color: #0066ff;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #5a7a8a;
+            background: rgba(0, 150, 255, 0.04);
+            padding: 6px 14px 6px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 150, 255, 0.06);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+            animation: pulse-dot 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.85);
+            }
+        }
+
+        .user-card {
+            background: linear-gradient(135deg, rgba(0, 100, 255, 0.04), rgba(0, 200, 255, 0.02));
+            border: 1px solid rgba(0, 150, 255, 0.06);
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-label {
+            font-size: 11px;
+            color: #0066ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            opacity: 0.7;
+        }
+
+        .user-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0a2a3a;
+        }
+
+        .user-badge {
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 100, 255, 0.15);
+        }
+
+        .user-badge.expired {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
+        }
+
+        .aimlock-section {
+            margin-top: 24px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .aimlock-section .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5a7a8a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .aimlock-toggle-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            padding: 20px;
+            background: rgba(0, 150, 255, 0.03);
+            border-radius: 24px;
+            border: 1px solid rgba(0, 150, 255, 0.04);
+        }
+
+        .toggle-switch {
+            width: 80px;
+            height: 44px;
+            background: #dce8f0;
+            border-radius: 30px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.32, 1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.active {
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.2);
+        }
+
+        .toggle-switch .toggle-thumb {
+            width: 36px;
+            height: 36px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.32, 1);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .toggle-switch.active .toggle-thumb {
+            transform: translateX(36px);
+            background: #fff;
+        }
+
+        .toggle-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0a2a3a;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .toggle-label .status-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .toggle-label .status-text.on {
+            color: #0066ff;
+        }
+
+        .toggle-label .status-text.off {
+            color: #5a7a8a;
+        }
+
+        .status-info {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 150, 255, 0.04);
+            border-radius: 14px;
+            padding: 12px 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item .value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a2a3a;
+        }
+
+        .status-item .value.green {
+            color: #22c55e;
+        }
+
+        .status-item .value.blue {
+            color: #0066ff;
+        }
+
+        .status-item .value.red {
+            color: #ef4444;
+        }
+
+        .status-item .label {
+            font-size: 10px;
+            color: #5a7a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .btn-logout {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            background: rgba(239, 68, 68, 0.04);
+            color: #ef4444;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+            border: 1px solid rgba(239, 68, 68, 0.06);
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-logout:active {
+            transform: scale(0.98);
+        }
+
+        /* ===== LOGIN OVERLAY ===== */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(232, 244, 248, 0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            transition: opacity 0.5s cubic-bezier(0.16, 1, 0.32, 1);
+        }
+
+        .login-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 380px;
+            background: #ffffff;
+            border-radius: 32px;
+            padding: 40px 32px 36px;
+            border: 1px solid rgba(0, 150, 255, 0.06);
+            box-shadow: 0 30px 80px rgba(0, 50, 150, 0.06), 0 0 60px rgba(0, 100, 255, 0.02);
+            position: relative;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0066ff, #00ccff);
+        }
+
+        .login-box .brand-center {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-box .brand-center .brand-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 12px;
+            font-size: 24px;
+            box-shadow: 0 4px 30px rgba(0, 100, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .login-box .brand-center h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0a2a3a;
+            letter-spacing: -0.5px;
+        }
+
+        .login-box .brand-center h2 span {
+            color: #0066ff;
+        }
+
+        .login-box .brand-center p {
+            color: #5a7a8a;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .login-input-group {
+            margin-bottom: 16px;
+        }
+
+        .login-input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0a2a3a;
+            margin-bottom: 8px;
+        }
+
+        .login-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #f0f6fa;
+            border: 2px solid rgba(0, 150, 255, 0.06);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .login-input-wrapper:focus-within {
+            border-color: #0066ff;
+            box-shadow: 0 0 0 4px rgba(0, 100, 255, 0.04);
+            background: #ffffff;
+        }
+
+        .login-input-wrapper .input-icon {
+            padding: 0 14px 0 16px;
+            color: #5a7a8a;
+            font-size: 16px;
+        }
+
+        .login-input-wrapper input {
+            flex: 1;
+            padding: 16px 16px 16px 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #0a2a3a;
+            font-size: 15px;
+            font-weight: 500;
+            font-family: 'Inter', monospace;
+            letter-spacing: 1px;
+        }
+
+        .login-input-wrapper input::placeholder {
+            color: #a0b8c8;
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        .login-input-wrapper .btn-paste {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: #5a7a8a;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            border-left: 1px solid rgba(0, 150, 255, 0.06);
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .login-input-wrapper .btn-paste:hover {
+            color: #0066ff;
+            background: rgba(0, 100, 255, 0.03);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: 0 4px 20px rgba(0, 100, 255, 0.15);
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 100, 255, 0.2);
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 14px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .login-error.show {
+            display: block;
+        }
+
+        .login-timer {
+            text-align: right;
+            font-size: 13px;
+            color: #5a7a8a;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .login-timer span {
+            color: #0066ff;
+            font-weight: 700;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 12px 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 150, 255, 0.06);
+            font-size: 14px;
+            font-weight: 500;
+            color: #0a2a3a;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.32, 1);
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+            max-width: 90%;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-color: rgba(34, 197, 94, 0.15);
+        }
+        .toast.error {
+            border-color: rgba(239, 68, 68, 0.15);
+        }
+        .toast.info {
+            border-color: rgba(0, 100, 255, 0.08);
+        }
+
+        .anti-debug-overlay {
+            position: fixed;
+            inset: 0;
+            background: #e8f4f8;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 20px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .anti-debug-overlay.show {
+            display: flex;
+        }
+
+        .anti-debug-overlay h1 {
+            color: #ef4444;
+            font-size: 28px;
+        }
+
+        .anti-debug-overlay p {
+            color: #5a7a8a;
+            font-size: 16px;
+            max-width: 400px;
+        }
+
+        /* ===== ANTI-VIEW SOURCE ===== */
+        html, body {
+            min-height: 100vh;
+        }
+
+        /* Ẩn toàn bộ nội dung nếu phát hiện view source */
+        .view-source-blocker {
+            position: fixed;
+            inset: 0;
+            background: #e8f4f8;
+            z-index: 99999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .view-source-blocker.show {
+            display: flex;
+        }
+
+        .view-source-blocker h1 {
+            color: #ef4444;
+            font-size: 32px;
+        }
+
+        .view-source-blocker p {
+            color: #5a7a8a;
+            font-size: 16px;
+            max-width: 400px;
+        }
+
+        @media (max-width: 400px) {
+            .app-container {
+                padding: 18px 14px 20px;
+                border-radius: 24px;
+            }
+            .brand-text {
+                font-size: 18px;
+            }
+            .login-box {
+                padding: 28px 20px 24px;
+            }
+            .aimlock-toggle-wrapper {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px;
+            }
+            .toggle-switch {
+                width: 64px;
+                height: 36px;
+            }
+            .toggle-switch .toggle-thumb {
+                width: 28px;
+                height: 28px;
+                top: 4px;
+                left: 4px;
+            }
+            .toggle-switch.active .toggle-thumb {
+                transform: translateX(28px);
+            }
+            .status-info {
+                grid-template-columns: 1fr 1fr;
+            }
+            .header-status {
+                font-size: 10px;
+                padding: 4px 10px 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== VIEW SOURCE BLOCKER ===== -->
+    <div class="view-source-blocker" id="viewSourceBlocker">
+        <h1>⛔ TRUY CẬP BỊ TỪ CHỐI</h1>
+        <p>Phát hiện đang cố gắng xem mã nguồn. Vui lòng tắt công cụ dành cho nhà phát triển để tiếp tục.</p>
+    </div>
+
+    <!-- Bubbles Background -->
+    <div class="bubbles" id="bubblesContainer"></div>
+
+    <!-- Anti-Debug -->
+    <div id="antiDebugOverlay" class="anti-debug-overlay">
+        <h1>⛔ TRUY CẬP BỊ TỪ CHỐI</h1>
+        <p>Phát hiện công cụ dành cho nhà phát triển. Vui lòng đóng tất cả công cụ để tiếp tục sử dụng ứng dụng.</p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <div class="brand-center">
+                <div class="brand-icon">ML</div>
+                <h2>MINI<span>LOCK</span></h2>
+                <p>Enter your access key to continue</p>
+            </div>
+
+            <div class="login-input-group">
+                <label>Access Key</label>
+                <div class="login-input-wrapper">
+                    <span class="input-icon"><i class="fas fa-key"></i></span>
+                    <input type="text" id="loginKey" placeholder="Enter your key" maxlength="10" autocomplete="off" />
+                    <button class="btn-paste" onclick="pasteKey()" title="Paste key">
+                        <i class="fas fa-paste"></i>
+                    </button>
+                </div>
+                <div class="login-timer">⏱ <span id="loginTimer">60</span>s remaining</div>
+            </div>
+
+            <button class="btn-login" onclick="handleLogin()">UNLOCK</button>
+            <div id="loginError" class="login-error">Invalid access key</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <div class="app-header">
+            <div class="brand">
+                <div class="brand-icon">ML</div>
+                <div class="brand-text">MINI<span>LOCK</span></div>
+            </div>
+            <div class="header-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusLabel">ONLINE</span>
+            </div>
+        </div>
+
+        <div class="user-card">
+            <div class="user-info">
+                <span class="user-label">Tài khoản</span>
+                <span class="user-name" id="displayUser">USER</span>
+            </div>
+            <span class="user-badge" id="displayBadge">ACTIVE</span>
+        </div>
+
+        <div class="aimlock-section">
+            <span class="section-label">🎯 AIMLOCK CONTROLLER</span>
+            <div class="aimlock-toggle-wrapper">
+                <div class="toggle-switch" id="toggleSwitch" onclick="toggleAimlock()">
+                    <div class="toggle-thumb"></div>
+                </div>
+                <div class="toggle-label">
+                    <div id="toggleStatus">OFF</div>
+                    <div class="status-text off" id="toggleStatusText">Tắt</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-info">
+            <div class="status-item">
+                <div class="value blue" id="statStatus">● ONLINE</div>
+                <div class="label">Trạng thái</div>
+            </div>
+            <div class="status-item">
+                <div class="value" id="statVersion">V2.0</div>
+                <div class="label">Phiên bản</div>
+            </div>
+            <div class="status-item">
+                <div class="value green" id="statKeyStatus">VALID</div>
+                <div class="label">Key Status</div>
+            </div>
+        </div>
+
+        <button class="btn-logout" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT
+        </button>
+    </div>
+
+    <!-- ===== MAIN ENGINE - ẨN CODE ===== -->
+    <script>
+        // ================================================
+        // MINILOCK v6.0 - HIDDEN CODE
+        // KHÔNG MÃ HÓA, ẨN CODE BẰNG CHẶN TRUY CẬP
+        // ================================================
+
+        // ===== CHẶN VIEW SOURCE 100% =====
+        // 1. Chặn tất cả phím tắt xem source
+        document.addEventListener('keydown', function(e) {
+            const key = e.key;
+            const ctrl = e.ctrlKey;
+            const shift = e.shiftKey;
+            const alt = e.altKey;
+
+            // F12
+            if (key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+U
+            if (ctrl && (key === 'u' || key === 'U')) {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+S
+            if (ctrl && (key === 's' || key === 'S')) {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+I, J, C
+            if (ctrl && shift && ['I', 'J', 'C', 'U', 'O', 'P', 'E', 'L', 'H'].includes(key.toUpperCase())) {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+U
+            if (ctrl && shift && key === 'U') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+J
+            if (ctrl && shift && key === 'J') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+C
+            if (ctrl && shift && key === 'C') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+O
+            if (ctrl && shift && key === 'O') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+P
+            if (ctrl && shift && key === 'P') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+E
+            if (ctrl && shift && key === 'E') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+L
+            if (ctrl && shift && key === 'L') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+H
+            if (ctrl && key === 'h') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+Shift+H
+            if (ctrl && shift && key === 'H') {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+
+            // Ctrl+A
+            if (ctrl && key === 'a') {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+
+            // Ctrl+C (chặn copy)
+            if (ctrl && key === 'c') {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+
+            // Ctrl+X (chặn cut)
+            if (ctrl && key === 'x') {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+
+            // Ctrl+V (chặn paste - chỉ cho phép ở input)
+            if (ctrl && key === 'v') {
+                const tag = document.activeElement.tagName.toLowerCase();
+                if (tag !== 'input' && tag !== 'textarea') {
+                    e.preventDefault();
+                    e.returnValue = false;
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // 2. Chặn chuột phải
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.returnValue = false;
+            document.getElementById('viewSourceBlocker').classList.add('show');
+            return false;
+        });
+
+        // 3. Chặn drag (kéo thả)
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            e.returnValue = false;
+            return false;
+        });
+
+        // 4. Chặn chọn văn bản
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            e.returnValue = false;
+            return false;
+        });
+
+        // 5. Chặn copy, cut
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            e.returnValue = false;
+            return false;
+        });
+
+        document.addEventListener('cut', function(e) {
+            e.preventDefault();
+            e.returnValue = false;
+            return false;
+        });
+
+        // 6. Chặn DOM Inspector - click phải trên elements
+        document.addEventListener('mousedown', function(e) {
+            if (e.button === 2) {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+        });
+
+        // 7. Chặn Developer Tools bằng debugger
+        let devtoolsOpen = false;
+        const antiDebug = document.getElementById('antiDebugOverlay');
+
+        setInterval(function() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            if (end - start > 100) {
+                if (!devtoolsOpen) {
+                    devtoolsOpen = true;
+                    antiDebug.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                    document.getElementById('viewSourceBlocker').classList.add('show');
+                }
+            } else {
+                if (devtoolsOpen) {
+                    devtoolsOpen = false;
+                    antiDebug.classList.remove('show');
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        }, 300);
+
+        // 8. Chặn mở tab mới với view-source:
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' && e.target.href && e.target.href.startsWith('view-source:')) {
+                e.preventDefault();
+                e.returnValue = false;
+                document.getElementById('viewSourceBlocker').classList.add('show');
+                return false;
+            }
+        });
+
+        // 9. Chặn tải trang bằng Ctrl+R
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === 'r' || e.key === 'R')) {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+        });
+
+        // ================================================
+        // FIREBASE CONFIG (ẨN TRONG CODE)
+        // ================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGkhT2kvWVPMiMrsADX04tyZSj6ueRHtg",
+            authDomain: "yamate-efab6.firebaseapp.com",
+            databaseURL: "https://yamate-efab6-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "yamate-efab6",
+            storageBucket: "yamate-efab6.firebasestorage.app",
+            messagingSenderId: "352037727100",
+            appId: "1:352037727100:web:abe3e49eb1f7555e9392f9"
+        };
+
+        // ================================================
+        // KHỞI TẠO FIREBASE
+        // ================================================
+        let firebaseDB = null;
+        let firebaseReady = false;
+
+        try {
+            if (typeof firebase !== 'undefined') {
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                firebaseDB = firebase.database();
+                firebaseReady = true;
+            }
+        } catch (e) {}
+
+        // ================================================
+        // BUBBLES
+        // ================================================
+        (function createBubbles() {
+            const container = document.getElementById('bubblesContainer');
+            for (let i = 0; i < 30; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = 20 + Math.random() * 80;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.animationDuration = (15 + Math.random() * 25) + 's';
+                bubble.style.animationDelay = (Math.random() * 20) + 's';
+                container.appendChild(bubble);
+            }
+        })();
+
+        // ================================================
+        // TOAST
+        // ================================================
+        let toastTimer = null;
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + (type || 'info');
+            clearTimeout(toastTimer);
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ================================================
+        // LOGIN
+        // ================================================
+        const loginOverlay = document.getElementById('loginOverlay');
+        const loginKey = document.getElementById('loginKey');
+        const loginError = document.getElementById('loginError');
+        const timerEl = document.getElementById('loginTimer');
+        let timerSeconds = 60;
+        let loginTimerInterval = null;
+
+        function startTimer() {
+            timerSeconds = 60;
+            timerEl.textContent = timerSeconds;
+            clearInterval(loginTimerInterval);
+            loginTimerInterval = setInterval(() => {
+                timerSeconds--;
+                timerEl.textContent = timerSeconds;
+                if (timerSeconds <= 0) {
+                    clearInterval(loginTimerInterval);
+                    loginKey.value = '';
+                    showToast('⏰ Session expired', 'error');
+                }
+            }, 1000);
+        }
+        startTimer();
+
+        window.pasteKey = function() {
+            navigator.clipboard.readText().then(text => {
+                loginKey.value = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+                showToast('✅ Key pasted', 'success');
+            }).catch(() => {
+                showToast('Cannot paste', 'error');
+            });
+        };
+
+        async function checkKey(key) {
+            if (!firebaseReady) return null;
+            try {
+                const snap = await firebaseDB.ref('keys/' + key).once('value');
+                if (!snap.exists()) return null;
+                const data = snap.val();
+                data.key = key;
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        window.handleLogin = function() {
+            const key = loginKey.value.trim().toUpperCase();
+
+            if (!key) {
+                loginError.textContent = 'Please enter your key';
+                loginError.classList.add('show');
+                return;
+            }
+
+            if (key.length !== 10 || !/^[A-Z0-9]{10}$/.test(key)) {
+                loginError.textContent = 'Invalid key (10 characters)';
+                loginError.classList.add('show');
+                return;
+            }
+
+            loginError.classList.remove('show');
+
+            if (!firebaseReady) {
+                loginError.textContent = 'Connecting...';
+                loginError.classList.add('show');
+                return;
+            }
+
+            const btn = document.querySelector('.btn-login');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Checking...';
+            btn.disabled = true;
+
+            checkKey(key).then(keyData => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (!keyData) {
+                    loginError.textContent = 'Invalid key';
+                    loginError.classList.add('show');
+                    return;
+                }
+
+                const now = Date.now();
+                if (now > keyData.expire) {
+                    loginError.textContent = 'Key expired';
+                    loginError.classList.add('show');
+                    return;
+                }
+
+                if (!keyData.active) {
+                    loginError.textContent = 'Key locked';
+                    loginError.classList.add('show');
+                    return;
+                }
+
+                localStorage.setItem('ml_session', key);
+                localStorage.setItem('ml_data', JSON.stringify(keyData));
+
+                loginOverlay.classList.add('hidden');
+
+                const userId = 'User_' + key.substr(0, 4);
+                document.getElementById('displayUser').textContent = userId;
+
+                const remaining = Math.ceil((keyData.expire - now) / 86400000);
+                if (remaining > 0) {
+                    document.getElementById('displayBadge').textContent = 'ACTIVE';
+                    document.getElementById('displayBadge').className = 'user-badge';
+                    document.getElementById('statStatus').textContent = '● ONLINE';
+                    document.getElementById('statStatus').className = 'value blue';
+                    document.getElementById('statusDot').className = 'status-dot';
+                    document.getElementById('statusLabel').textContent = 'ONLINE';
+                    document.getElementById('statKeyStatus').textContent = 'VALID';
+                    document.getElementById('statKeyStatus').className = 'value green';
+                } else {
+                    document.getElementById('displayBadge').textContent = 'EXPIRED';
+                    document.getElementById('displayBadge').className = 'user-badge expired';
+                    document.getElementById('statStatus').textContent = '● OFFLINE';
+                    document.getElementById('statStatus').className = 'value red';
+                    document.getElementById('statusDot').className = 'status-dot offline';
+                    document.getElementById('statusLabel').textContent = 'OFFLINE';
+                    document.getElementById('statKeyStatus').textContent = 'EXPIRED';
+                    document.getElementById('statKeyStatus').className = 'value red';
+                }
+
+                showToast('✅ Unlocked!', 'success');
+                clearInterval(loginTimerInterval);
+
+                const saved = localStorage.getItem('ml_aimlock_' + key);
+                if (saved === 'on') {
+                    document.getElementById('toggleSwitch').classList.add('active');
+                    document.getElementById('toggleStatus').textContent = 'ON';
+                    document.getElementById('toggleStatusText').textContent = 'Đang bật';
+                    document.getElementById('toggleStatusText').className = 'status-text on';
+                    activateAimlock();
+                }
+            });
+        };
+
+        function checkSession() {
+            const session = localStorage.getItem('ml_session');
+            if (session) {
+                try {
+                    const data = JSON.parse(localStorage.getItem('ml_data'));
+                    const now = Date.now();
+                    if (now <= data.expire && data.active) {
+                        loginOverlay.classList.add('hidden');
+                        const userId = 'User_' + session.substr(0, 4);
+                        document.getElementById('displayUser').textContent = userId;
+                        document.getElementById('displayBadge').textContent = 'ACTIVE';
+                        document.getElementById('displayBadge').className = 'user-badge';
+                        document.getElementById('statStatus').textContent = '● ONLINE';
+                        document.getElementById('statStatus').className = 'value blue';
+                        document.getElementById('statusDot').className = 'status-dot';
+                        document.getElementById('statusLabel').textContent = 'ONLINE';
+                        document.getElementById('statKeyStatus').textContent = 'VALID';
+                        document.getElementById('statKeyStatus').className = 'value green';
+                        showToast('Welcome back!', 'success');
+
+                        const saved = localStorage.getItem('ml_aimlock_' + session);
+                        if (saved === 'on') {
+                            document.getElementById('toggleSwitch').classList.add('active');
+                            document.getElementById('toggleStatus').textContent = 'ON';
+                            document.getElementById('toggleStatusText').textContent = 'Đang bật';
+                            document.getElementById('toggleStatusText').className = 'status-text on';
+                            activateAimlock();
+                        }
+                        return;
+                    }
+                } catch (e) {}
+            }
+            loginOverlay.classList.remove('hidden');
+            startTimer();
+        }
+
+        // ================================================
+        // LOGOUT
+        // ================================================
+        window.handleLogout = function() {
+            if (document.getElementById('toggleSwitch').classList.contains('active')) {
+                deactivateAimlock();
+                document.getElementById('toggleSwitch').classList.remove('active');
+                document.getElementById('toggleStatus').textContent = 'OFF';
+                document.getElementById('toggleStatusText').textContent = 'Tắt';
+                document.getElementById('toggleStatusText').className = 'status-text off';
+            }
+
+            localStorage.removeItem('ml_session');
+            localStorage.removeItem('ml_data');
+
+            document.getElementById('displayUser').textContent = 'USER';
+            document.getElementById('displayBadge').textContent = 'ACTIVE';
+            document.getElementById('displayBadge').className = 'user-badge';
+            document.getElementById('statStatus').textContent = '● OFFLINE';
+            document.getElementById('statStatus').className = 'value red';
+            document.getElementById('statusDot').className = 'status-dot offline';
+            document.getElementById('statusLabel').textContent = 'OFFLINE';
+            document.getElementById('statKeyStatus').textContent = 'INACTIVE';
+            document.getElementById('statKeyStatus').className = 'value red';
+
+            loginOverlay.classList.remove('hidden');
+            loginKey.value = '';
+            startTimer();
+            showToast('Logged out', 'info');
+        };
+
+        // ================================================
+        // AIMLOCK ENGINE
+        // ================================================
+        let aimlockActive = false;
+        let aimlockScript = null;
+
+        function getAimlockCode() {
+            return `
+                (function(){
+                    'use strict';
+                    const CONFIG={aimFov:150,aimSpeed:0.92,smoothness:0.85,lockDistance:200};
+                    let targets=[],currentTarget=null,isLocked=false;
+                    const originalRAF=window.requestAnimationFrame;
+                    function findBestTarget(){
+                        const cx=window.innerWidth/2,cy=window.innerHeight/2;
+                        let best=null,bestDist=Infinity;
+                        const els=document.querySelectorAll('*');
+                        for(const el of els){
+                            const rect=el.getBoundingClientRect();
+                            if(rect.width<10||rect.height<10)continue;
+                            const tx=rect.left+rect.width/2,ty=rect.top+rect.height/2;
+                            const dx=tx-cx,dy=ty-cy,dist=Math.sqrt(dx*dx+dy*dy);
+                            if(dist<CONFIG.aimFov&&dist<bestDist){bestDist=dist;best={el,cx:tx,cy:ty,rect};}
+                        }
+                        return best;
+                    }
+                    function smoothMove(tx,ty){
+                        const cx=window.scrollX+window.innerWidth/2,cy=window.scrollY+window.innerHeight/2;
+                        const dx=tx-cx,dy=ty-cy,dist=Math.sqrt(dx*dx+dy*dy);
+                        if(dist>CONFIG.lockDistance)return;
+                        const speed=Math.min(CONFIG.aimSpeed,CONFIG.lockDistance/(dist+1));
+                        window.scrollBy(dx*speed*CONFIG.smoothness,dy*speed*CONFIG.smoothness);
+                    }
+                    function aimloop(){
+                        if(!isLocked){const t=findBestTarget();if(t&&t.el){currentTarget=t;isLocked=true;}}
+                        else if(currentTarget){const r=currentTarget.el.getBoundingClientRect();
+                            if(r.width===0||r.height===0){isLocked=false;currentTarget=null;}
+                            else{smoothMove(r.left+r.width/2,r.top+r.height/2);}}
+                        requestAnimationFrame(aimloop);
+                    }
+                    let mouseDown=false;
+                    document.addEventListener('mousedown',(e)=>{if(e.button===0){mouseDown=true;isLocked=false;setTimeout(()=>{if(mouseDown)isLocked=true;},100);}});
+                    document.addEventListener('mouseup',(e)=>{if(e.button===0)mouseDown=false;});
+                    document.addEventListener('keydown',(e)=>{if(e.key==='Shift'){isLocked=!isLocked;if(!isLocked)currentTarget=null;}});
+                    requestAnimationFrame(aimloop);
+                    window.__mlEngine={toggle:function(){isLocked=!isLocked;if(!isLocked)currentTarget=null;return isLocked;},status:function(){return{isLocked,target:currentTarget;}}};
+                    console.log('🎯 AIMLOCK ACTIVATED');
+                })();
+            `;
+        }
+
+        function activateAimlock() {
+            if (aimlockActive) return;
+            try {
+                const code = getAimlockCode();
+                const script = document.createElement('script');
+                script.textContent = code;
+                script.id = 'ml-engine';
+                document.head.appendChild(script);
+                aimlockActive = true;
+                aimlockScript = script;
+                const key = localStorage.getItem('ml_session');
+                if (key) localStorage.setItem('ml_aimlock_' + key, 'on');
+                showToast('🎯 AIMLOCK ACTIVATED', 'success');
+            } catch (e) {
+                showToast('❌ Activation failed', 'error');
+            }
+        }
+
+        function deactivateAimlock() {
+            if (!aimlockActive) return;
+            try {
+                const script = document.getElementById('ml-engine');
+                if (script) script.remove();
+                if (window.__mlEngine) window.__mlEngine = null;
+                aimlockActive = false;
+                aimlockScript = null;
+                const key = localStorage.getItem('ml_session');
+                if (key) localStorage.setItem('ml_aimlock_' + key, 'off');
+                showToast('🔒 AIMLOCK DEACTIVATED', 'info');
+            } catch (e) {}
+        }
+
+        window.toggleAimlock = function() {
+            if (!localStorage.getItem('ml_session')) {
+                showToast('Please login first', 'error');
+                return;
+            }
+
+            const toggle = document.getElementById('toggleSwitch');
+            const isActive = toggle.classList.contains('active');
+
+            if (isActive) {
+                deactivateAimlock();
+                toggle.classList.remove('active');
+                document.getElementById('toggleStatus').textContent = 'OFF';
+                document.getElementById('toggleStatusText').textContent = 'Tắt';
+                document.getElementById('toggleStatusText').className = 'status-text off';
+            } else {
+                activateAimlock();
+                toggle.classList.add('active');
+                document.getElementById('toggleStatus').textContent = 'ON';
+                document.getElementById('toggleStatusText').textContent = 'Đang bật';
+                document.getElementById('toggleStatusText').className = 'status-text on';
+            }
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key === 'a') {
+                e.preventDefault();
+                window.toggleAimlock();
+            }
+        });
+
+        // ================================================
+        // ENTER KEY SUPPORT
+        // ================================================
+        loginKey.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') window.handleLogin();
+            setTimeout(() => {
+                loginKey.value = loginKey.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            }, 50);
+        });
+
+        // ================================================
+        // INIT
+        // ================================================
+
+        if (firebaseReady) {
+            checkSession();
+        } else {
+            let attempts = 0;
+            const waitForFirebase = setInterval(() => {
+                if (firebaseReady) {
+                    clearInterval(waitForFirebase);
+                    checkSession();
+                }
+                attempts++;
+                if (attempts > 15) {
+                    clearInterval(waitForFirebase);
+                    checkSession();
+                }
+            }, 200);
+        }
+
+        // Ẩn console.log
+        const origLog = console.log;
+        console.log = function() {
+            if (arguments.length > 0 && typeof arguments[0] === 'string') {
+                if (arguments[0].includes('MINILOCK') || arguments[0].includes('config') ||
+                    arguments[0].includes('firebase') || arguments[0].includes('key') ||
+                    arguments[0].includes('AIMLOCK')) {
+                    return;
+                }
+            }
+            origLog.apply(this, arguments);
+        };
+
+        // Chặn clear console
+        const origClear = console.clear;
+        console.clear = function() {
+            showToast('⚠️ Cannot clear console', 'error');
+            origClear.apply(this, arguments);
+        };
+
+        console.log('%c🔒 MINILOCK v6.0 - Hidden Code', 'color:#0066ff;font-size:20px;font-weight:bold;');
+        console.log('%c⚡ 100% View Source Blocked', 'color:#00ccff;font-size:12px;');
+    </script>
+
+</body>
+</html>

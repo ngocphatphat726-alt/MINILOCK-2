@@ -25,6 +25,8 @@
             -webkit-user-select: none;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: #e8f4f8;
@@ -112,21 +114,108 @@
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .brand-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #0066ff, #00ccff);
-            border-radius: 14px;
+        /* ===== AVATAR FF - MÀU XANH DƯƠNG ===== */
+        .avatar-wrapper {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+        }
+
+        .avatar-ring {
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0066ff, #00ccff, #0066ff);
+            padding: 2px;
+            animation: spin-ring 3s linear infinite;
+        }
+
+        .avatar-ring-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f0f6fa, #ffffff);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes spin-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .avatar-ff {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
             font-weight: 900;
-            color: #fff;
-            box-shadow: 0 4px 20px rgba(0, 100, 255, 0.25);
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            z-index: 2;
+            letter-spacing: -1px;
+        }
+
+        .avatar-ff::after {
+            content: '⚡';
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            font-size: 11px;
+            -webkit-text-fill-color: initial;
+            color: #ffcc00;
+            text-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+            animation: pulse-lightning 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-lightning {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.3);
+            }
+        }
+
+        .avatar-glow {
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 100, 255, 0.1), transparent 70%);
+            animation: pulse-glow 2s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes pulse-glow {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
         }
 
         .brand-text {
@@ -138,6 +227,16 @@
 
         .brand-text span {
             color: #0066ff;
+        }
+
+        .brand-text small {
+            font-size: 10px;
+            font-weight: 600;
+            color: #5a7a8a;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: block;
+            margin-top: -2px;
         }
 
         .header-status {
@@ -432,19 +531,20 @@
             margin-bottom: 32px;
         }
 
-        .login-box .brand-center .brand-icon {
-            width: 64px;
-            height: 64px;
+        .login-box .brand-center .avatar-wrapper {
+            width: 72px;
+            height: 72px;
             margin: 0 auto 12px;
-            font-size: 24px;
-            box-shadow: 0 4px 30px rgba(0, 100, 255, 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 16px;
-            background: linear-gradient(135deg, #0066ff, #00ccff);
-            color: #fff;
-            font-weight: 900;
+        }
+
+        .login-box .brand-center .avatar-ff {
+            font-size: 32px;
+        }
+
+        .login-box .brand-center .avatar-ff::after {
+            font-size: 16px;
+            top: -4px;
+            right: -6px;
         }
 
         .login-box .brand-center h2 {
@@ -655,12 +755,6 @@
             max-width: 400px;
         }
 
-        /* ===== ANTI-VIEW SOURCE ===== */
-        html, body {
-            min-height: 100vh;
-        }
-
-        /* Ẩn toàn bộ nội dung nếu phát hiện view source */
         .view-source-blocker {
             position: fixed;
             inset: 0;
@@ -726,19 +820,33 @@
                 font-size: 10px;
                 padding: 4px 10px 4px 8px;
             }
+            .avatar-wrapper {
+                width: 40px;
+                height: 40px;
+            }
+            .avatar-ff {
+                font-size: 18px;
+            }
+            .login-box .brand-center .avatar-wrapper {
+                width: 60px;
+                height: 60px;
+            }
+            .login-box .brand-center .avatar-ff {
+                font-size: 26px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- ===== VIEW SOURCE BLOCKER ===== -->
+    <!-- Bubbles Background -->
+    <div class="bubbles" id="bubblesContainer"></div>
+
+    <!-- View Source Blocker -->
     <div class="view-source-blocker" id="viewSourceBlocker">
         <h1>⛔ TRUY CẬP BỊ TỪ CHỐI</h1>
         <p>Phát hiện đang cố gắng xem mã nguồn. Vui lòng tắt công cụ dành cho nhà phát triển để tiếp tục.</p>
     </div>
-
-    <!-- Bubbles Background -->
-    <div class="bubbles" id="bubblesContainer"></div>
 
     <!-- Anti-Debug -->
     <div id="antiDebugOverlay" class="anti-debug-overlay">
@@ -752,7 +860,14 @@
     <div id="loginOverlay" class="login-overlay">
         <div class="login-box">
             <div class="brand-center">
-                <div class="brand-icon">ML</div>
+                <div class="avatar-wrapper">
+                    <div class="avatar-ring">
+                        <div class="avatar-ring-inner">
+                            <div class="avatar-glow"></div>
+                            <div class="avatar-ff">👻</div>
+                        </div>
+                    </div>
+                </div>
                 <h2>MINI<span>LOCK</span></h2>
                 <p>Enter your access key to continue</p>
             </div>
@@ -776,10 +891,21 @@
 
     <!-- Main App -->
     <div class="app-container" id="appContainer">
+        <!-- Header -->
         <div class="app-header">
             <div class="brand">
-                <div class="brand-icon">ML</div>
-                <div class="brand-text">MINI<span>LOCK</span></div>
+                <div class="avatar-wrapper">
+                    <div class="avatar-ring">
+                        <div class="avatar-ring-inner">
+                            <div class="avatar-glow"></div>
+                            <div class="avatar-ff">FF</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="brand-text">MINI<span>LOCK</span></div>
+                    <small>⚡ AIM ASSIST</small>
+                </div>
             </div>
             <div class="header-status">
                 <span class="status-dot" id="statusDot"></span>
@@ -787,6 +913,7 @@
             </div>
         </div>
 
+        <!-- User Card -->
         <div class="user-card">
             <div class="user-info">
                 <span class="user-label">Tài khoản</span>
@@ -795,6 +922,7 @@
             <span class="user-badge" id="displayBadge">ACTIVE</span>
         </div>
 
+        <!-- AIMLOCK Section -->
         <div class="aimlock-section">
             <span class="section-label">🎯 AIMLOCK CONTROLLER</span>
             <div class="aimlock-toggle-wrapper">
@@ -808,6 +936,7 @@
             </div>
         </div>
 
+        <!-- Status Info -->
         <div class="status-info">
             <div class="status-item">
                 <div class="value blue" id="statStatus">● ONLINE</div>
@@ -823,27 +952,24 @@
             </div>
         </div>
 
+        <!-- Logout -->
         <button class="btn-logout" onclick="handleLogout()">
             <i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT
         </button>
     </div>
 
-    <!-- ===== MAIN ENGINE - ẨN CODE ===== -->
+    <!-- ===== MAIN ENGINE ===== -->
     <script>
         // ================================================
-        // MINILOCK v6.0 - HIDDEN CODE
-        // KHÔNG MÃ HÓA, ẨN CODE BẰNG CHẶN TRUY CẬP
+        // MINILOCK v8.0 - WITH FF AVATAR (LIGHT THEME)
         // ================================================
 
         // ===== CHẶN VIEW SOURCE 100% =====
-        // 1. Chặn tất cả phím tắt xem source
         document.addEventListener('keydown', function(e) {
             const key = e.key;
             const ctrl = e.ctrlKey;
             const shift = e.shiftKey;
-            const alt = e.altKey;
 
-            // F12
             if (key === 'F12' || e.keyCode === 123) {
                 e.preventDefault();
                 e.returnValue = false;
@@ -851,23 +977,13 @@
                 return false;
             }
 
-            // Ctrl+U
-            if (ctrl && (key === 'u' || key === 'U')) {
+            if (ctrl && (key === 'u' || key === 'U' || key === 's' || key === 'S')) {
                 e.preventDefault();
                 e.returnValue = false;
                 document.getElementById('viewSourceBlocker').classList.add('show');
                 return false;
             }
 
-            // Ctrl+S
-            if (ctrl && (key === 's' || key === 'S')) {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+I, J, C
             if (ctrl && shift && ['I', 'J', 'C', 'U', 'O', 'P', 'E', 'L', 'H'].includes(key.toUpperCase())) {
                 e.preventDefault();
                 e.returnValue = false;
@@ -875,100 +991,12 @@
                 return false;
             }
 
-            // Ctrl+Shift+U
-            if (ctrl && shift && key === 'U') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+J
-            if (ctrl && shift && key === 'J') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+C
-            if (ctrl && shift && key === 'C') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+O
-            if (ctrl && shift && key === 'O') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+P
-            if (ctrl && shift && key === 'P') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+E
-            if (ctrl && shift && key === 'E') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+L
-            if (ctrl && shift && key === 'L') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+H
-            if (ctrl && key === 'h') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+Shift+H
-            if (ctrl && shift && key === 'H') {
-                e.preventDefault();
-                e.returnValue = false;
-                document.getElementById('viewSourceBlocker').classList.add('show');
-                return false;
-            }
-
-            // Ctrl+A
-            if (ctrl && key === 'a') {
+            if (ctrl && (key === 'h' || key === 'a' || key === 'c' || key === 'x')) {
                 e.preventDefault();
                 e.returnValue = false;
                 return false;
             }
 
-            // Ctrl+C (chặn copy)
-            if (ctrl && key === 'c') {
-                e.preventDefault();
-                e.returnValue = false;
-                return false;
-            }
-
-            // Ctrl+X (chặn cut)
-            if (ctrl && key === 'x') {
-                e.preventDefault();
-                e.returnValue = false;
-                return false;
-            }
-
-            // Ctrl+V (chặn paste - chỉ cho phép ở input)
             if (ctrl && key === 'v') {
                 const tag = document.activeElement.tagName.toLowerCase();
                 if (tag !== 'input' && tag !== 'textarea') {
@@ -978,10 +1006,15 @@
                 }
             }
 
+            if (ctrl && (key === 'r' || key === 'R')) {
+                e.preventDefault();
+                e.returnValue = false;
+                return false;
+            }
+
             return true;
         });
 
-        // 2. Chặn chuột phải
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             e.returnValue = false;
@@ -989,21 +1022,18 @@
             return false;
         });
 
-        // 3. Chặn drag (kéo thả)
         document.addEventListener('dragstart', function(e) {
             e.preventDefault();
             e.returnValue = false;
             return false;
         });
 
-        // 4. Chặn chọn văn bản
         document.addEventListener('selectstart', function(e) {
             e.preventDefault();
             e.returnValue = false;
             return false;
         });
 
-        // 5. Chặn copy, cut
         document.addEventListener('copy', function(e) {
             e.preventDefault();
             e.returnValue = false;
@@ -1016,7 +1046,6 @@
             return false;
         });
 
-        // 6. Chặn DOM Inspector - click phải trên elements
         document.addEventListener('mousedown', function(e) {
             if (e.button === 2) {
                 e.preventDefault();
@@ -1025,7 +1054,7 @@
             }
         });
 
-        // 7. Chặn Developer Tools bằng debugger
+        // DevTools detection
         let devtoolsOpen = false;
         const antiDebug = document.getElementById('antiDebugOverlay');
 
@@ -1049,7 +1078,6 @@
             }
         }, 300);
 
-        // 8. Chặn mở tab mới với view-source:
         document.addEventListener('click', function(e) {
             if (e.target.tagName === 'A' && e.target.href && e.target.href.startsWith('view-source:')) {
                 e.preventDefault();
@@ -1059,17 +1087,8 @@
             }
         });
 
-        // 9. Chặn tải trang bằng Ctrl+R
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && (e.key === 'r' || e.key === 'R')) {
-                e.preventDefault();
-                e.returnValue = false;
-                return false;
-            }
-        });
-
         // ================================================
-        // FIREBASE CONFIG (ẨN TRONG CODE)
+        // FIREBASE CONFIG
         // ================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCGkhT2kvWVPMiMrsADX04tyZSj6ueRHtg",
@@ -1350,8 +1369,7 @@
                 (function(){
                     'use strict';
                     const CONFIG={aimFov:150,aimSpeed:0.92,smoothness:0.85,lockDistance:200};
-                    let targets=[],currentTarget=null,isLocked=false;
-                    const originalRAF=window.requestAnimationFrame;
+                    let currentTarget=null,isLocked=false;
                     function findBestTarget(){
                         const cx=window.innerWidth/2,cy=window.innerHeight/2;
                         let best=null,bestDist=Infinity;
@@ -1384,8 +1402,7 @@
                     document.addEventListener('mouseup',(e)=>{if(e.button===0)mouseDown=false;});
                     document.addEventListener('keydown',(e)=>{if(e.key==='Shift'){isLocked=!isLocked;if(!isLocked)currentTarget=null;}});
                     requestAnimationFrame(aimloop);
-                    window.__mlEngine={toggle:function(){isLocked=!isLocked;if(!isLocked)currentTarget=null;return isLocked;},status:function(){return{isLocked,target:currentTarget;}}};
-                    console.log('🎯 AIMLOCK ACTIVATED');
+                    window.__mlEngine={toggle:function(){isLocked=!isLocked;if(!isLocked)currentTarget=null;return isLocked;}};
                 })();
             `;
         }
@@ -1497,15 +1514,14 @@
             origLog.apply(this, arguments);
         };
 
-        // Chặn clear console
         const origClear = console.clear;
         console.clear = function() {
             showToast('⚠️ Cannot clear console', 'error');
             origClear.apply(this, arguments);
         };
 
-        console.log('%c🔒 MINILOCK v6.0 - Hidden Code', 'color:#0066ff;font-size:20px;font-weight:bold;');
-        console.log('%c⚡ 100% View Source Blocked', 'color:#00ccff;font-size:12px;');
+        console.log('%c🔒 MINILOCK v8.0', 'color:#0066ff;font-size:20px;font-weight:bold;');
+        console.log('%c⚡ FF Avatar | Light Theme', 'color:#00ccff;font-size:12px;');
     </script>
 
 </body>

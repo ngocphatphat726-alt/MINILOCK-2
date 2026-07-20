@@ -45,6 +45,7 @@
         .user-badge.vip{background:linear-gradient(135deg,#ffd700,#f59e0b);box-shadow:0 4px 15px rgba(255,215,0,0.25)}
         .user-badge.expired{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 15px rgba(239,68,68,0.15)}
         .user-badge.normal{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 4px 15px rgba(34,197,94,0.15)}
+        .user-badge.deleted{background:linear-gradient(135deg,#64748b,#475569);box-shadow:0 4px 15px rgba(100,116,139,0.15);opacity:0.6}
 
         .key-info{margin-top:12px;padding:10px 16px;border-radius:12px;background:rgba(0,150,255,0.04);border:1px solid rgba(0,150,255,0.06);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a7a8a;position:relative;z-index:1;flex-wrap:wrap;gap:4px}
         .key-info .key-value{color:#0066ff;font-weight:700;font-family:monospace}
@@ -55,9 +56,12 @@
         .key-info .key-type.vip{background:rgba(255,215,0,0.1);color:#f59e0b}
         .key-info .key-type.normal{background:rgba(34,197,94,0.1);color:#22c55e}
         .key-info .key-type.hour{background:rgba(245,158,11,0.1);color:#f59e0b}
+        .key-info .key-type.deleted{background:rgba(100,116,139,0.1);color:#64748b}
 
         .expiry-warning{background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.06);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:11px;color:#ef4444;display:none;text-align:center;position:relative;z-index:1}
         .expiry-warning.show{display:block}
+        .deleted-warning{background:rgba(100,116,139,0.04);border:1px solid rgba(100,116,139,0.06);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:11px;color:#64748b;display:none;text-align:center;position:relative;z-index:1}
+        .deleted-warning.show{display:block}
 
         .features-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;position:relative;z-index:1}
         .feature-item{background:rgba(255,255,255,0.5);border:1px solid rgba(0,150,255,0.04);border-radius:16px;padding:14px 12px;transition:all 0.3s ease;cursor:pointer;position:relative;overflow:hidden;text-align:center;backdrop-filter:blur(10px)}
@@ -176,9 +180,8 @@
             <span class="key-expiry">⏳ Hết hạn: <span id="displayExpiry">—</span></span>
         </div>
 
-        <div class="expiry-warning" id="expiryWarning">
-            ⚠️ Key sắp hết hạn! Vui lòng gia hạn để tiếp tục sử dụng.
-        </div>
+        <div class="expiry-warning" id="expiryWarning">⚠️ Key sắp hết hạn! Vui lòng gia hạn để tiếp tục sử dụng.</div>
+        <div class="deleted-warning" id="deletedWarning">🔒 Key đã bị xóa khỏi hệ thống! Tự động đăng xuất...</div>
 
         <div class="section-title"><i class="fas fa-crosshairs"></i> TÍNH NĂNG</div>
         <div class="features-grid" id="featuresGrid">
@@ -241,8 +244,8 @@
 
     <script>
         // ================================================
-        // MINILOCK PRO v10.0 - ULTIMATE SECURITY
-        // KEY THƯỜNG XỊN HƠN, KEY VIP MẠNH HƠN
+        // MINILOCK PRO v11.0 - KEY DELETION DETECTION
+        // TỰ ĐỘNG ĐĂNG XUẤT KHI KEY BỊ XÓA
         // ================================================
 
         // ================================================
@@ -303,15 +306,35 @@
 
         // ===== AUTO LOGOUT ENGINE =====
         let expiryCheckInterval = null;
+        let keyExistsCheckInterval = null;
         let currentKeyData = null;
         let isLoggedIn = false;
         let isVip = false;
         let isNormal = false;
         let isHour = false;
+        let isKeyDeleted = false;
+
+        // ===== KIỂM TRA KEY CÒN TỒN TẠI KHÔNG =====
+        async function checkKeyExists(key) {
+            if (!firebaseReady || !key) return true;
+            try {
+                const snap = await firebaseDB.ref('keys/' + key).once('value');
+                return snap.exists();
+            } catch(e) {
+                return true;
+            }
+        }
 
         function startExpiryMonitor(keyData) {
             currentKeyData = keyData;
+            isKeyDeleted = false;
+            
+            // Reset warning
+            document.getElementById('deletedWarning').classList.remove('show');
+            document.getElementById('expiryWarning').classList.remove('show');
+
             if (expiryCheckInterval) clearInterval(expiryCheckInterval);
+            if (keyExistsCheckInterval) clearInterval(keyExistsCheckInterval);
 
             // Xác định loại key
             isVip = isVIPKey(keyData);
@@ -346,8 +369,37 @@
                 showToast('⏰ KEY GIỜ - Tính năng cơ bản', 'info');
             }
 
-            expiryCheckInterval = setInterval(() => {
+            // ===== KIỂM TRA KEY CÒN TỒN TẠI (MỖI 5 GIÂY) =====
+            keyExistsCheckInterval = setInterval(async () => {
                 if (!isLoggedIn) return;
+                const sessionKey = localStorage.getItem('ml_session');
+                if (!sessionKey) return;
+
+                const exists = await checkKeyExists(sessionKey);
+                
+                if (!exists) {
+                    // KEY ĐÃ BỊ XÓA → TỰ ĐỘNG ĐĂNG XUẤT
+                    isKeyDeleted = true;
+                    document.getElementById('deletedWarning').classList.add('show');
+                    document.getElementById('displayKeyType').textContent = '🗑️ Đã xóa';
+                    document.getElementById('displayKeyType').className = 'key-type deleted';
+                    document.getElementById('displayBadge').textContent = 'DELETED';
+                    document.getElementById('displayBadge').className = 'user-badge deleted';
+                    document.getElementById('statusDot').className = 'status-dot offline';
+                    document.getElementById('statusLabel').textContent = 'OFFLINE';
+                    document.getElementById('displayKey').style.color = '#64748b';
+                    
+                    showToast('🔒 Key đã bị xóa khỏi hệ thống! Tự động đăng xuất...', 'error');
+                    
+                    setTimeout(() => {
+                        autoLogout('Key đã bị xóa khỏi hệ thống');
+                    }, 2000);
+                }
+            }, 5000);
+
+            // ===== KIỂM TRA HẾT HẠN (MỖI 10 GIÂY) =====
+            expiryCheckInterval = setInterval(() => {
+                if (!isLoggedIn || isKeyDeleted) return;
                 const now = Date.now();
                 const expire = currentKeyData.expire;
                 const remaining = expire - now;
@@ -408,8 +460,11 @@
         function autoLogout(reason) {
             if (!isLoggedIn) return;
             isLoggedIn = false;
+            isKeyDeleted = false;
             if (expiryCheckInterval) { clearInterval(expiryCheckInterval); expiryCheckInterval = null; }
+            if (keyExistsCheckInterval) { clearInterval(keyExistsCheckInterval); keyExistsCheckInterval = null; }
 
+            // Reset UI
             document.getElementById('displayUser').textContent = 'USER';
             document.getElementById('displayKey').textContent = '—';
             document.getElementById('displayKeyType').textContent = '—';
@@ -419,7 +474,9 @@
             document.getElementById('statusDot').className = 'status-dot offline';
             document.getElementById('statusLabel').textContent = 'OFFLINE';
             document.getElementById('expiryWarning').classList.remove('show');
+            document.getElementById('deletedWarning').classList.remove('show');
 
+            // Xóa session
             localStorage.removeItem('ml_session');
             localStorage.removeItem('ml_data');
 
@@ -429,6 +486,7 @@
             showToast(`🔒 Đã đăng xuất: ${reason}`, 'error');
         }
 
+        // ===== LOGIN =====
         window.handleLogin = function() {
             const key = loginKey.value.trim().toUpperCase();
             if (!key) { loginError.textContent = 'Please enter your key'; loginError.classList.add('show'); return }
@@ -444,7 +502,13 @@
             checkKey(key).then(keyData => {
                 btn.textContent = originalText;
                 btn.disabled = false;
-                if (!keyData) { loginError.textContent = 'Invalid key'; loginError.classList.add('show'); return }
+                
+                // ==== KIỂM TRA KEY CÒN TỒN TẠI ====
+                if (!keyData) {
+                    loginError.textContent = '❌ Key không tồn tại hoặc đã bị xóa!';
+                    loginError.classList.add('show');
+                    return;
+                }
 
                 const now = Date.now();
                 if (now > keyData.expire) {
@@ -452,12 +516,17 @@
                     loginError.classList.add('show');
                     return;
                 }
-                if (!keyData.active) { loginError.textContent = 'Key locked'; loginError.classList.add('show'); return }
+                if (!keyData.active) {
+                    loginError.textContent = 'Key locked';
+                    loginError.classList.add('show');
+                    return;
+                }
 
                 isLoggedIn = true;
                 isVip = isVIPKey(keyData);
                 isNormal = isNormalKey(keyData);
                 isHour = isHourKey(keyData);
+                isKeyDeleted = false;
 
                 localStorage.setItem('ml_session', key);
                 localStorage.setItem('ml_data', JSON.stringify(keyData));
@@ -505,6 +574,7 @@
                         isVip = isVIPKey(data);
                         isNormal = isNormalKey(data);
                         isHour = isHourKey(data);
+                        isKeyDeleted = false;
 
                         loginOverlay.classList.add('hidden');
                         const userId = 'User_' + session.substr(0, 4);
@@ -544,7 +614,9 @@
         // ================================================
         window.handleLogout = function() {
             if (expiryCheckInterval) { clearInterval(expiryCheckInterval); expiryCheckInterval = null; }
+            if (keyExistsCheckInterval) { clearInterval(keyExistsCheckInterval); keyExistsCheckInterval = null; }
             isLoggedIn = false;
+            isKeyDeleted = false;
 
             document.querySelectorAll('.feature-item[data-feature].active').forEach(el => {
                 el.classList.remove('active');
@@ -564,6 +636,7 @@
             document.getElementById('statusDot').className = 'status-dot offline';
             document.getElementById('statusLabel').textContent = 'OFFLINE';
             document.getElementById('expiryWarning').classList.remove('show');
+            document.getElementById('deletedWarning').classList.remove('show');
 
             loginOverlay.classList.remove('hidden');
             loginKey.value = '';
@@ -572,17 +645,12 @@
         };
 
         // ================================================
-        // FEATURES ENGINE - NÂNG CẤP
+        // FEATURES ENGINE
         // ================================================
         let activeFeatures = {};
         let featureScripts = {};
 
-        // ===== FEATURE CONFIG THEO LOẠI KEY =====
         function getFeatureConfig(feature) {
-            // VIP: Tất cả tính năng mạnh nhất
-            // Normal: Tính năng cơ bản nhưng xịn hơn
-            // Hour: Tính năng cơ bản
-
             const vipConfig = {
                 aimlock: { fov: 200, speed: 0.98, smoothness: 0.95, lockDistance: 300 },
                 headlock: { fov: 160, speed: 0.97, smoothness: 0.93, lockDistance: 250 },
@@ -632,7 +700,6 @@
                     'use strict';
                     const CONFIG = ${JSON.stringify(config)};
                     let active = true;
-                    let interval = null;
                     let currentTarget = null;
                     let isLocked = false;
 
@@ -688,14 +755,7 @@
                                 isLocked = true;
                             }
                         } else if(currentTarget) {
-                            const cx = currentTarget.x;
-                            const cy = currentTarget.y;
-                            if(cx && cy) {
-                                smoothMove(cx, cy);
-                            } else {
-                                isLocked = false;
-                                currentTarget = null;
-                            }
+                            smoothMove(currentTarget.x, currentTarget.y);
                         }
                         requestAnimationFrame(aimLoop);
                     }
@@ -716,16 +776,10 @@
                             isLocked = !isLocked;
                             if(!isLocked) currentTarget = null;
                         }
-                        if(e.key === 'Tab') {
-                            e.preventDefault();
-                            const target = findBestTarget();
-                            if(target) { currentTarget = target; isLocked = true; }
-                        }
                     });
 
                     requestAnimationFrame(aimLoop);
                     window.__ml_aimlock = { toggle: function(){ active = !active; return active; } };
-                    console.log('🎯 AIMLOCK ACTIVATED');
                 })();
                 `,
                 'headlock': `
@@ -804,7 +858,6 @@
 
                     requestAnimationFrame(aimLoop);
                     window.__ml_headlock = { toggle: function(){ active = !active; return active; } };
-                    console.log('👤 HEAD LOCK ACTIVATED');
                 })();
                 `,
                 'lightaim': `
@@ -852,7 +905,6 @@
                     }
                     requestAnimationFrame(lightAimLoop);
                     window.__ml_lightaim = { toggle: function(){ active = !active; return active; } };
-                    console.log('🎯 NHẸ TÂM ACTIVATED');
                 })();
                 `,
                 'shakefix': `
@@ -874,7 +926,6 @@
                     }
                     requestAnimationFrame(shakeFixLoop);
                     window.__ml_shakefix = { toggle: function(){ active = !active; return active; } };
-                    console.log('📳 FIX RUNG ACTIVATED');
                 })();
                 `,
                 'driftfix': `
@@ -895,7 +946,6 @@
                     }
                     requestAnimationFrame(driftFixLoop);
                     window.__ml_driftfix = { toggle: function(){ active = !active; return active; } };
-                    console.log('↗️ FIX LỐ ACTIVATED');
                 })();
                 `,
                 'bulletfix': `
@@ -918,7 +968,6 @@
                     }
                     document.addEventListener('click', bulletFixHandler, true);
                     window.__ml_bulletfix = { toggle: function(){ active = !active; return active; } };
-                    console.log('🎯 ĐẠN THẲNG ACTIVATED');
                 })();
                 `,
                 'pinhead': `
@@ -979,7 +1028,6 @@
                             if(target) { lockedTarget = target; isLocked = true; }
                         } else if(lockedTarget) {
                             smoothMove(lockedTarget.x, lockedTarget.y);
-                            // Giữ target cố định
                         }
                         requestAnimationFrame(pinLoop);
                     }
@@ -998,7 +1046,6 @@
 
                     requestAnimationFrame(pinLoop);
                     window.__ml_pinhead = { toggle: function(){ active = !active; if(!active) { lockedTarget = null; isLocked = false; } return active; } };
-                    console.log('📌 GHIM ĐẦU ACTIVATED');
                 })();
                 `,
                 'optimize': `
@@ -1012,7 +1059,6 @@
                         const style = document.createElement('style');
                         style.textContent = '*{animation-duration:0.01s!important;transition-duration:0.01s!important;}';
                         document.head.appendChild(style);
-                        // Tối ưu hiệu suất
                         if(CONFIG.level === 'ultra') {
                             document.querySelectorAll('*').forEach(el => {
                                 if(el.style.animation) el.style.animation = 'none';
@@ -1022,7 +1068,6 @@
                     }
                     optimizeSystem();
                     window.__ml_optimize = { toggle: function(){ active = !active; return active; } };
-                    console.log('🚀 TỐI ƯU ACTIVATED');
                 })();
                 `
             };
@@ -1103,12 +1148,13 @@
 
         window.toggleFeature = function(el) {
             if (!isLoggedIn) { showToast('Please login first', 'error'); return; }
+            if (isKeyDeleted) { showToast('🔒 Key đã bị xóa!', 'error'); return; }
+            
             const key = localStorage.getItem('ml_session');
             if (!key) return;
 
             const feat = el.dataset.feature;
 
-            // Kiểm tra VIP cho tính năng VIP
             if (isFeatureVIP(feat) && !isVip && !isNormal) {
                 showToast('🔒 VIP feature! Nâng cấp lên VIP để sử dụng', 'error');
                 el.classList.add('vip-locked');
@@ -1136,6 +1182,7 @@
         // ================================================
         window.activateAll = function() {
             if (!isLoggedIn) { showToast('Please login first', 'error'); return; }
+            if (isKeyDeleted) { showToast('🔒 Key đã bị xóa!', 'error'); return; }
 
             const btn = document.getElementById('btnActivate');
             btn.textContent = '⏳ Đang kích hoạt...';
@@ -1148,7 +1195,6 @@
                 const feat = el.dataset.feature;
                 const isActive = el.classList.contains('active');
 
-                // Check VIP
                 if (isFeatureVIP(feat) && !isVip && !isNormal) return;
 
                 if (!isActive) {
@@ -1299,8 +1345,8 @@
         // ================================================
         if (firebaseReady) { checkSession(); } else { let attempts = 0; const wait = setInterval(() => { if (firebaseReady) { clearInterval(wait); checkSession(); } attempts++; if (attempts > 15) { clearInterval(wait); checkSession(); } }, 200); }
 
-        console.log('%c🔒 MINILOCK PRO v10.0 - Ultimate Security', 'color:#0066ff;font-size:22px;font-weight:bold;');
-        console.log('%c⚡ Key Normal xịn hơn | Key VIP mạnh hơn', 'color:#00ccff;font-size:14px;');
+        console.log('%c🔒 MINILOCK PRO v11.0 - Key Deletion Detection', 'color:#0066ff;font-size:22px;font-weight:bold;');
+        console.log('%c⚡ Tự động đăng xuất khi key bị xóa', 'color:#00ccff;font-size:14px;');
         console.log('%c🔥 Silent Protection | Ready to Sell', 'color:#ffd700;font-size:12px;');
     </script>
 

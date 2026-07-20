@@ -1,2 +1,1308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MINILOCK PRO - Ultimate AIM Tool</title>
 
- 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+        body{font-family:'Inter',sans-serif;background:#e8f4f8;color:#0a2a3a;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:16px;overflow:hidden;position:relative}
+        
+        .bubbles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+        .bubble{position:absolute;bottom:-50px;background:rgba(0,150,255,0.04);border-radius:50%;animation:floatBubble linear infinite}
+        @keyframes floatBubble{0%{transform:translateY(0) scale(1);opacity:0.3}100%{transform:translateY(-110vh) scale(0.2);opacity:0}}
+        body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,100,255,0.03) 0%,transparent 70%);z-index:0;pointer-events:none}
+
+        .app-container{width:100%;max-width:440px;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);border-radius:32px;padding:24px 20px 28px;box-shadow:0 20px 60px rgba(0,50,150,0.08),0 0 40px rgba(0,100,255,0.04);border:1px solid rgba(0,150,255,0.08);position:relative;overflow:hidden;z-index:1;max-height:95vh;overflow-y:auto}
+        .app-container::-webkit-scrollbar{width:4px}
+        .app-container::-webkit-scrollbar-track{background:transparent}
+        .app-container::-webkit-scrollbar-thumb{background:rgba(0,100,255,0.2);border-radius:4px}
+        .app-container::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0066ff,#00ccff,#0066ff);box-shadow:0 0 30px rgba(0,100,255,0.3)}
+        .app-container::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#0066ff,#00ccff,#0066ff,transparent);opacity:0.3}
+
+        .app-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(0,150,255,0.06);position:relative;z-index:1}
+        .brand{display:flex;align-items:center;gap:12px}
+        .brand-icon{width:48px;height:48px;background:linear-gradient(135deg,#0066ff,#00ccff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;box-shadow:0 4px 20px rgba(0,100,255,0.25);font-family:'Orbitron',sans-serif}
+        .brand-text{font-size:20px;font-weight:800;color:#0a2a3a;letter-spacing:-0.5px}
+        .brand-text .vip{color:#ffd700}
+        .brand-text small{font-size:10px;font-weight:600;color:#5a7a8a;letter-spacing:1px;text-transform:uppercase;display:block;margin-top:-2px}
+        .header-status{display:flex;align-items:center;gap:8px;font-size:11px;color:#5a7a8a;background:rgba(0,150,255,0.04);padding:6px 14px 6px 10px;border-radius:20px;border:1px solid rgba(0,150,255,0.06)}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 20px rgba(34,197,94,0.3);animation:pulse-dot 2s infinite}
+        .status-dot.offline{background:#ef4444;box-shadow:0 0 20px rgba(239,68,68,0.3);animation:none}
+        @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+
+        .user-card{background:linear-gradient(135deg,rgba(0,100,255,0.04),rgba(0,200,255,0.02));border:1px solid rgba(0,150,255,0.06);border-radius:20px;padding:16px 20px;margin-top:16px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+        .user-info{display:flex;flex-direction:column;gap:2px}
+        .user-label{font-size:11px;color:#0066ff;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;opacity:0.7}
+        .user-name{font-size:18px;font-weight:700;color:#0a2a3a}
+        .user-badge{background:linear-gradient(135deg,#0066ff,#00ccff);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;box-shadow:0 4px 15px rgba(0,100,255,0.15)}
+        .user-badge.vip{background:linear-gradient(135deg,#ffd700,#f59e0b);box-shadow:0 4px 15px rgba(255,215,0,0.25)}
+        .user-badge.expired{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 15px rgba(239,68,68,0.15)}
+        .user-badge.normal{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 4px 15px rgba(34,197,94,0.15)}
+
+        .key-info{margin-top:12px;padding:10px 16px;border-radius:12px;background:rgba(0,150,255,0.04);border:1px solid rgba(0,150,255,0.06);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a7a8a;position:relative;z-index:1;flex-wrap:wrap;gap:4px}
+        .key-info .key-value{color:#0066ff;font-weight:700;font-family:monospace}
+        .key-info .key-expiry{color:#5a7a8a}
+        .key-info .key-expiry .danger{color:#ef4444;font-weight:700}
+        .key-info .key-expiry .good{color:#22c55e;font-weight:700}
+        .key-info .key-type{background:rgba(0,150,255,0.06);padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600;color:#0066ff}
+        .key-info .key-type.vip{background:rgba(255,215,0,0.1);color:#f59e0b}
+        .key-info .key-type.normal{background:rgba(34,197,94,0.1);color:#22c55e}
+        .key-info .key-type.hour{background:rgba(245,158,11,0.1);color:#f59e0b}
+
+        .expiry-warning{background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.06);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:11px;color:#ef4444;display:none;text-align:center;position:relative;z-index:1}
+        .expiry-warning.show{display:block}
+
+        .features-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;position:relative;z-index:1}
+        .feature-item{background:rgba(255,255,255,0.5);border:1px solid rgba(0,150,255,0.04);border-radius:16px;padding:14px 12px;transition:all 0.3s ease;cursor:pointer;position:relative;overflow:hidden;text-align:center;backdrop-filter:blur(10px)}
+        .feature-item::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,100,255,0.02),transparent);opacity:0;transition:opacity 0.3s ease}
+        .feature-item:hover::before{opacity:1}
+        .feature-item:active{transform:scale(0.97)}
+        .feature-item.active{border-color:rgba(0,150,255,0.15);background:rgba(0,100,255,0.04)}
+        .feature-item .feature-icon{font-size:20px;color:#0066ff;margin-bottom:6px;display:block}
+        .feature-item .feature-name{font-size:11px;font-weight:700;color:#0a2a3a;margin-bottom:2px}
+        .feature-item .feature-status{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+        .feature-item .feature-status.on{color:#22c55e}
+        .feature-item .feature-status.off{color:#5a7a8a}
+        .feature-item .feature-toggle{width:32px;height:16px;background:#dce8f0;border-radius:10px;position:relative;margin:6px auto 0;transition:all 0.3s ease;cursor:pointer;border:1px solid rgba(0,150,255,0.05)}
+        .feature-item .feature-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;background:#5a7a8a;border-radius:50%;transition:all 0.3s ease}
+        .feature-item.active .feature-toggle{background:linear-gradient(135deg,#0066ff,#00ccff);box-shadow:0 0 20px rgba(0,100,255,0.15);border-color:#0066ff}
+        .feature-item.active .feature-toggle::after{transform:translateX(16px);background:#fff}
+        .feature-item.vip-locked{opacity:0.5;cursor:not-allowed;border-color:rgba(255,215,0,0.1)}
+        .feature-item.vip-locked::after{content:'🔒 VIP';position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#f59e0b;background:rgba(255,255,255,0.8);padding:2px 6px;border-radius:4px;letter-spacing:0.3px}
+
+        .section-title{font-size:13px;font-weight:700;color:#5a7a8a;text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px;display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+        .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,150,255,0.1),transparent)}
+        .section-title i{color:#0066ff}
+
+        .btn-activate{width:100%;padding:16px;border:none;border-radius:14px;background:linear-gradient(135deg,#0066ff,#00ccff);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s ease;font-family:inherit;box-shadow:0 4px 20px rgba(0,100,255,0.2);margin-top:8px;letter-spacing:0.5px}
+        .btn-activate:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,100,255,0.3)}
+        .btn-activate:active{transform:scale(0.98)}
+
+        .btn-logout{width:100%;margin-top:20px;padding:14px;border:none;border-radius:14px;background:rgba(239,68,68,0.04);color:#ef4444;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;border:1px solid rgba(239,68,68,0.06);position:relative;z-index:1}
+        .btn-logout:hover{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.1)}
+        .btn-logout:active{transform:scale(0.98)}
+
+        .login-overlay{position:fixed;inset:0;background:rgba(232,244,248,0.95);backdrop-filter:blur(20px);display:flex;justify-content:center;align-items:center;z-index:1000;padding:20px;transition:opacity 0.5s cubic-bezier(0.16,1,0.32,1)}
+        .login-overlay.hidden{opacity:0;pointer-events:none}
+        .login-box{width:100%;max-width:380px;background:#ffffff;border-radius:32px;padding:40px 32px 36px;border:1px solid rgba(0,150,255,0.06);box-shadow:0 30px 80px rgba(0,50,150,0.06),0 0 60px rgba(0,100,255,0.02);position:relative}
+        .login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0066ff,#00ccff)}
+        .login-box .brand-center{text-align:center;margin-bottom:32px}
+        .login-box .brand-center .brand-icon{width:64px;height:64px;margin:0 auto 12px;font-size:24px;box-shadow:0 4px 30px rgba(0,100,255,0.15);display:flex;align-items:center;justify-content:center;border-radius:16px;background:linear-gradient(135deg,#0066ff,#00ccff);color:#fff;font-weight:900;font-family:'Orbitron',sans-serif}
+        .login-box .brand-center h2{font-size:26px;font-weight:800;color:#0a2a3a;letter-spacing:-0.5px}
+        .login-box .brand-center h2 .vip{color:#ffd700}
+        .login-box .brand-center p{color:#5a7a8a;font-size:14px;margin-top:4px}
+        .login-input-group{margin-bottom:16px}
+        .login-input-group label{display:block;font-size:13px;font-weight:600;color:#0a2a3a;margin-bottom:8px}
+        .login-input-wrapper{position:relative;display:flex;align-items:center;background:#f0f6fa;border:2px solid rgba(0,150,255,0.06);border-radius:14px;transition:all 0.3s ease;overflow:hidden}
+        .login-input-wrapper:focus-within{border-color:#0066ff;box-shadow:0 0 0 4px rgba(0,100,255,0.04);background:#ffffff}
+        .login-input-wrapper .input-icon{padding:0 14px 0 16px;color:#5a7a8a;font-size:16px}
+        .login-input-wrapper input{flex:1;padding:16px 16px 16px 0;background:transparent;border:none;outline:none;color:#0a2a3a;font-size:15px;font-weight:500;font-family:'Inter',monospace;letter-spacing:1px}
+        .login-input-wrapper input::placeholder{color:#a0b8c8;font-weight:400;letter-spacing:0}
+        .login-input-wrapper .btn-paste{padding:10px 16px;background:transparent;border:none;color:#5a7a8a;cursor:pointer;transition:all 0.3s ease;font-size:16px;border-left:1px solid rgba(0,150,255,0.06);height:100%;display:flex;align-items:center}
+        .login-input-wrapper .btn-paste:hover{color:#0066ff;background:rgba(0,100,255,0.03)}
+        .btn-login{width:100%;padding:18px;border:none;border-radius:14px;background:linear-gradient(135deg,#0066ff,#00ccff);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s ease;font-family:inherit;box-shadow:0 4px 20px rgba(0,100,255,0.15);margin-top:8px;letter-spacing:0.5px}
+        .btn-login:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,100,255,0.2)}
+        .btn-login:active{transform:scale(0.98)}
+        .login-error{color:#ef4444;font-size:13px;text-align:center;margin-top:14px;display:none;font-weight:500}
+        .login-error.show{display:block}
+        .login-timer{text-align:right;font-size:13px;color:#5a7a8a;margin-top:8px;font-weight:500}
+        .login-timer span{color:#0066ff;font-weight:700}
+
+        .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);padding:12px 24px;border-radius:16px;border:1px solid rgba(0,150,255,0.06);font-size:14px;font-weight:500;color:#0a2a3a;z-index:2000;opacity:0;transition:all 0.4s cubic-bezier(0.16,1,0.32,1);pointer-events:none;white-space:nowrap;box-shadow:0 10px 40px rgba(0,0,0,0.06);max-width:90%;text-align:center}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast.success{border-color:rgba(34,197,94,0.15)}
+        .toast.error{border-color:rgba(239,68,68,0.15)}
+        .toast.info{border-color:rgba(0,100,255,0.08)}
+
+        .vip-badge-bottom{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,100,255,0.04);border:1px solid rgba(0,150,255,0.06);padding:4px 16px;border-radius:20px;font-size:10px;font-weight:600;color:#5a7a8a;z-index:2;letter-spacing:2px;text-transform:uppercase;backdrop-filter:blur(10px)}
+        .vip-badge-bottom i{color:#0066ff;margin-right:4px}
+
+        @media(max-width:400px){.app-container{padding:16px 14px 20px;border-radius:24px}.brand-text{font-size:18px}.login-box{padding:28px 20px 24px}.features-grid{grid-template-columns:1fr 1fr;gap:8px}.feature-item{padding:10px 8px}.feature-item .feature-icon{font-size:16px}.feature-item .feature-name{font-size:10px}}
+    </style>
+</head>
+<body>
+
+    <div class="bubbles" id="bubblesContainer"></div>
+    <div id="toast" class="toast"></div>
+    <div class="vip-badge-bottom"><i class="fas fa-crown"></i> MINILOCK PRO</div>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <div class="brand-center">
+                <div class="brand-icon">ML</div>
+                <h2>MINI<span class="vip">LOCK</span></h2>
+                <p>Enter your key to unlock features</p>
+            </div>
+            <div class="login-input-group">
+                <label>Access Key</label>
+                <div class="login-input-wrapper">
+                    <span class="input-icon"><i class="fas fa-key"></i></span>
+                    <input type="text" id="loginKey" placeholder="Enter your key" maxlength="10" autocomplete="off" />
+                    <button class="btn-paste" onclick="pasteKey()"><i class="fas fa-paste"></i></button>
+                </div>
+                <div class="login-timer">⏱ <span id="loginTimer">60</span>s remaining</div>
+            </div>
+            <button class="btn-login" onclick="handleLogin()">UNLOCK</button>
+            <div id="loginError" class="login-error">Invalid access key</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <div class="app-header">
+            <div class="brand">
+                <div class="brand-icon">ML</div>
+                <div><div class="brand-text">MINI<span class="vip">LOCK</span></div><small>⚡ AIM ASSIST PRO</small></div>
+            </div>
+            <div class="header-status"><span class="status-dot" id="statusDot"></span><span id="statusLabel">ONLINE</span></div>
+        </div>
+
+        <div class="user-card">
+            <div class="user-info"><span class="user-label">Tài khoản</span><span class="user-name" id="displayUser">USER</span></div>
+            <span class="user-badge" id="displayBadge">ACTIVE</span>
+        </div>
+
+        <div class="key-info">
+            <span>🔑 Key: <span class="key-value" id="displayKey">—</span></span>
+            <span class="key-type" id="displayKeyType">📄 Normal</span>
+            <span class="key-expiry">⏳ Hết hạn: <span id="displayExpiry">—</span></span>
+        </div>
+
+        <div class="expiry-warning" id="expiryWarning">
+            ⚠️ Key sắp hết hạn! Vui lòng gia hạn để tiếp tục sử dụng.
+        </div>
+
+        <div class="section-title"><i class="fas fa-crosshairs"></i> TÍNH NĂNG</div>
+        <div class="features-grid" id="featuresGrid">
+            <div class="feature-item" data-feature="aimlock" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-crosshairs"></i></span>
+                <div class="feature-name">AIMLOCK</div>
+                <div class="feature-status off" id="status-aimlock">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="headlock" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-user-astronaut"></i></span>
+                <div class="feature-name">HEAD LOCK</div>
+                <div class="feature-status off" id="status-headlock">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="lightaim" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-bullseye"></i></span>
+                <div class="feature-name">NHẸ TÂM</div>
+                <div class="feature-status off" id="status-lightaim">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="shakefix" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-wave-square"></i></span>
+                <div class="feature-name">FIX RUNG</div>
+                <div class="feature-status off" id="status-shakefix">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="driftfix" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-arrows-alt-h"></i></span>
+                <div class="feature-name">FIX LỐ</div>
+                <div class="feature-status off" id="status-driftfix">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="bulletfix" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-bullseye"></i></span>
+                <div class="feature-name">ĐẠN THẲNG</div>
+                <div class="feature-status off" id="status-bulletfix">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="pinhead" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-thumbtack"></i></span>
+                <div class="feature-name">GHIM ĐẦU</div>
+                <div class="feature-status off" id="status-pinhead">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+            <div class="feature-item" data-feature="optimize" onclick="toggleFeature(this)">
+                <span class="feature-icon"><i class="fas fa-microchip"></i></span>
+                <div class="feature-name">TỐI ƯU</div>
+                <div class="feature-status off" id="status-optimize">Tắt</div>
+                <div class="feature-toggle"></div>
+            </div>
+        </div>
+
+        <button class="btn-activate" id="btnActivate" onclick="activateAll()">
+            <i class="fas fa-play"></i> KÍCH HOẠT TẤT CẢ
+        </button>
+
+        <button class="btn-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT</button>
+    </div>
+
+    <script>
+        // ================================================
+        // MINILOCK PRO v10.0 - ULTIMATE SECURITY
+        // KEY THƯỜNG XỊN HƠN, KEY VIP MẠNH HƠN
+        // ================================================
+
+        // ================================================
+        // FIREBASE CONFIG
+        // ================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGkhT2kvWVPMiMrsADX04tyZSj6ueRHtg",
+            authDomain: "yamate-efab6.firebaseapp.com",
+            databaseURL: "https://yamate-efab6-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "yamate-efab6",
+            storageBucket: "yamate-efab6.firebasestorage.app",
+            messagingSenderId: "352037727100",
+            appId: "1:352037727100:web:abe3e49eb1f7555e9392f9"
+        };
+
+        let firebaseDB = null, firebaseReady = false;
+        try { if (typeof firebase !== 'undefined') { if (firebase.apps.length === 0) { firebase.initializeApp(firebaseConfig) } firebaseDB = firebase.database(); firebaseReady = true } } catch(e) {}
+
+        // ================================================
+        // TOAST
+        // ================================================
+        let toastTimer = null;
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + (type || 'info');
+            clearTimeout(toastTimer);
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            toastTimer = setTimeout(() => { toast.classList.remove('show') }, 3000);
+        }
+
+        // ================================================
+        // BUBBLES
+        // ================================================
+        (function createBubbles() { const container = document.getElementById('bubblesContainer'); for (let i = 0; i < 30; i++) { const bubble = document.createElement('div'); bubble.className = 'bubble'; const size = 20 + Math.random() * 80; bubble.style.width = size + 'px'; bubble.style.height = size + 'px'; bubble.style.left = Math.random() * 100 + '%'; bubble.style.animationDuration = (15 + Math.random() * 25) + 's'; bubble.style.animationDelay = (Math.random() * 20) + 's'; container.appendChild(bubble) } })();
+
+        // ================================================
+        // LOGIN
+        // ================================================
+        const loginOverlay = document.getElementById('loginOverlay');
+        const loginKey = document.getElementById('loginKey');
+        const loginError = document.getElementById('loginError');
+        const timerEl = document.getElementById('loginTimer');
+        let timerSeconds = 60, loginTimerInterval = null;
+
+        function startTimer() { timerSeconds = 60; timerEl.textContent = timerSeconds; clearInterval(loginTimerInterval); loginTimerInterval = setInterval(() => { timerSeconds--; timerEl.textContent = timerSeconds; if (timerSeconds <= 0) { clearInterval(loginTimerInterval); loginKey.value = ''; showToast('⏰ Session expired', 'error') } }, 1000) }
+        startTimer();
+
+        window.pasteKey = function() { navigator.clipboard.readText().then(text => { loginKey.value = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); showToast('✅ Key pasted', 'success') }).catch(() => { showToast('Cannot paste', 'error') }) };
+
+        function isVIPKey(d) { return d.type === 'VIP' || d.vip === true || d.isVip === true }
+        function isNormalKey(d) { return d.type === 'Normal' || d.type === 'normal' }
+        function isHourKey(d) { return d.type === 'Hour' || d.type === 'hour' }
+
+        async function checkKey(key) { if (!firebaseReady) return null; try { const snap = await firebaseDB.ref('keys/' + key).once('value'); if (!snap.exists()) return null; const data = snap.val(); data.key = key; return data } catch(e) { return null } }
+
+        // ===== AUTO LOGOUT ENGINE =====
+        let expiryCheckInterval = null;
+        let currentKeyData = null;
+        let isLoggedIn = false;
+        let isVip = false;
+        let isNormal = false;
+        let isHour = false;
+
+        function startExpiryMonitor(keyData) {
+            currentKeyData = keyData;
+            if (expiryCheckInterval) clearInterval(expiryCheckInterval);
+
+            // Xác định loại key
+            isVip = isVIPKey(keyData);
+            isNormal = isNormalKey(keyData);
+            isHour = isHourKey(keyData);
+
+            // Cập nhật UI theo loại key
+            const keyTypeEl = document.getElementById('displayKeyType');
+            const badgeEl = document.getElementById('displayBadge');
+            const keyValueEl = document.getElementById('displayKey');
+
+            if (isVip) {
+                keyTypeEl.textContent = '⭐ VIP';
+                keyTypeEl.className = 'key-type vip';
+                badgeEl.textContent = 'VIP PRO';
+                badgeEl.className = 'user-badge vip';
+                keyValueEl.style.color = '#f59e0b';
+                showToast('🌟 VIP KEY - Tất cả tính năng cao cấp!', 'success');
+            } else if (isNormal) {
+                keyTypeEl.textContent = '📄 Normal';
+                keyTypeEl.className = 'key-type normal';
+                badgeEl.textContent = 'NORMAL';
+                badgeEl.className = 'user-badge normal';
+                keyValueEl.style.color = '#22c55e';
+                showToast('📄 Normal KEY - Tính năng cơ bản', 'info');
+            } else if (isHour) {
+                keyTypeEl.textContent = '⏰ Giờ';
+                keyTypeEl.className = 'key-type hour';
+                badgeEl.textContent = 'HOUR';
+                badgeEl.className = 'user-badge normal';
+                keyValueEl.style.color = '#f59e0b';
+                showToast('⏰ KEY GIỜ - Tính năng cơ bản', 'info');
+            }
+
+            expiryCheckInterval = setInterval(() => {
+                if (!isLoggedIn) return;
+                const now = Date.now();
+                const expire = currentKeyData.expire;
+                const remaining = expire - now;
+                const daysRemaining = remaining / (1000 * 60 * 60 * 24);
+
+                updateExpiryDisplay(expire);
+
+                if (remaining <= 0) {
+                    showToast('⏰ Key đã hết hạn! Tự động đăng xuất...', 'error');
+                    autoLogout('Key đã hết hạn');
+                    return;
+                }
+
+                if (daysRemaining < 1 && daysRemaining > 0) {
+                    document.getElementById('expiryWarning').classList.add('show');
+                    document.getElementById('displayExpiry').className = 'key-expiry danger';
+                    document.getElementById('displayExpiry').innerHTML = `<span class="danger">${formatTimeLeft(remaining)}</span>`;
+                } else {
+                    document.getElementById('expiryWarning').classList.remove('show');
+                    document.getElementById('displayExpiry').className = 'key-expiry good';
+                    if (remaining > 0) {
+                        document.getElementById('displayExpiry').innerHTML = `<span class="good">${formatTimeLeft(remaining)}</span>`;
+                    }
+                }
+
+                const badge = document.getElementById('displayBadge');
+                if (remaining <= 0) {
+                    badge.textContent = 'EXPIRED';
+                    badge.className = 'user-badge expired';
+                    document.getElementById('statusDot').className = 'status-dot offline';
+                    document.getElementById('statusLabel').textContent = 'OFFLINE';
+                }
+            }, 10000);
+        }
+
+        function formatTimeLeft(ms) {
+            if (ms <= 0) return 'Đã hết hạn';
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            if (days > 0) return `${days} ngày ${hours} giờ`;
+            if (hours > 0) return `${hours} giờ ${minutes} phút`;
+            return `${minutes} phút`;
+        }
+
+        function updateExpiryDisplay(expire) {
+            const now = Date.now();
+            const remaining = expire - now;
+            if (remaining <= 0) {
+                document.getElementById('displayExpiry').textContent = 'Đã hết hạn';
+                document.getElementById('displayExpiry').className = 'key-expiry danger';
+                return;
+            }
+            const date = new Date(expire);
+            document.getElementById('displayExpiry').textContent = date.toLocaleString('vi-VN');
+        }
+
+        function autoLogout(reason) {
+            if (!isLoggedIn) return;
+            isLoggedIn = false;
+            if (expiryCheckInterval) { clearInterval(expiryCheckInterval); expiryCheckInterval = null; }
+
+            document.getElementById('displayUser').textContent = 'USER';
+            document.getElementById('displayKey').textContent = '—';
+            document.getElementById('displayKeyType').textContent = '—';
+            document.getElementById('displayExpiry').textContent = '—';
+            document.getElementById('displayBadge').textContent = 'EXPIRED';
+            document.getElementById('displayBadge').className = 'user-badge expired';
+            document.getElementById('statusDot').className = 'status-dot offline';
+            document.getElementById('statusLabel').textContent = 'OFFLINE';
+            document.getElementById('expiryWarning').classList.remove('show');
+
+            localStorage.removeItem('ml_session');
+            localStorage.removeItem('ml_data');
+
+            loginOverlay.classList.remove('hidden');
+            loginKey.value = '';
+            startTimer();
+            showToast(`🔒 Đã đăng xuất: ${reason}`, 'error');
+        }
+
+        window.handleLogin = function() {
+            const key = loginKey.value.trim().toUpperCase();
+            if (!key) { loginError.textContent = 'Please enter your key'; loginError.classList.add('show'); return }
+            if (key.length !== 10 || !/^[A-Z0-9]{10}$/.test(key)) { loginError.textContent = 'Invalid key (10 characters)'; loginError.classList.add('show'); return }
+            loginError.classList.remove('show');
+            if (!firebaseReady) { loginError.textContent = 'Connecting...'; loginError.classList.add('show'); return }
+
+            const btn = document.querySelector('.btn-login');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Checking...';
+            btn.disabled = true;
+
+            checkKey(key).then(keyData => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                if (!keyData) { loginError.textContent = 'Invalid key'; loginError.classList.add('show'); return }
+
+                const now = Date.now();
+                if (now > keyData.expire) {
+                    loginError.textContent = '⏰ Key has expired!';
+                    loginError.classList.add('show');
+                    return;
+                }
+                if (!keyData.active) { loginError.textContent = 'Key locked'; loginError.classList.add('show'); return }
+
+                isLoggedIn = true;
+                isVip = isVIPKey(keyData);
+                isNormal = isNormalKey(keyData);
+                isHour = isHourKey(keyData);
+
+                localStorage.setItem('ml_session', key);
+                localStorage.setItem('ml_data', JSON.stringify(keyData));
+
+                loginOverlay.classList.add('hidden');
+
+                const userId = 'User_' + key.substr(0, 4);
+                document.getElementById('displayUser').textContent = userId;
+                document.getElementById('displayKey').textContent = key;
+
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusLabel').textContent = 'ONLINE';
+                document.getElementById('displayExpiry').className = 'key-expiry good';
+
+                startExpiryMonitor(keyData);
+
+                showToast(isVip ? '✅ VIP KEY UNLOCKED!' : '✅ Unlocked!', 'success');
+                clearInterval(loginTimerInterval);
+
+                const saved = localStorage.getItem('ml_features_' + key);
+                if (saved) {
+                    try {
+                        const features = JSON.parse(saved);
+                        document.querySelectorAll('.feature-item[data-feature]').forEach(el => {
+                            const feat = el.dataset.feature;
+                            if (features[feat] === true) {
+                                el.classList.add('active');
+                                const statusEl = document.getElementById('status-' + feat);
+                                if (statusEl) { statusEl.textContent = 'Bật'; statusEl.className = 'feature-status on'; }
+                            }
+                        });
+                    } catch(e) {}
+                }
+            });
+        };
+
+        function checkSession() {
+            const session = localStorage.getItem('ml_session');
+            if (session) {
+                try {
+                    const data = JSON.parse(localStorage.getItem('ml_data'));
+                    const now = Date.now();
+                    if (now <= data.expire && data.active) {
+                        isLoggedIn = true;
+                        isVip = isVIPKey(data);
+                        isNormal = isNormalKey(data);
+                        isHour = isHourKey(data);
+
+                        loginOverlay.classList.add('hidden');
+                        const userId = 'User_' + session.substr(0, 4);
+                        document.getElementById('displayUser').textContent = userId;
+                        document.getElementById('displayKey').textContent = session;
+                        document.getElementById('statusDot').className = 'status-dot';
+                        document.getElementById('statusLabel').textContent = 'ONLINE';
+                        document.getElementById('displayExpiry').className = 'key-expiry good';
+                        startExpiryMonitor(data);
+                        showToast('Welcome back!', 'success');
+
+                        const saved = localStorage.getItem('ml_features_' + session);
+                        if (saved) {
+                            try {
+                                const features = JSON.parse(saved);
+                                document.querySelectorAll('.feature-item[data-feature]').forEach(el => {
+                                    const feat = el.dataset.feature;
+                                    if (features[feat] === true) {
+                                        el.classList.add('active');
+                                        const statusEl = document.getElementById('status-' + feat);
+                                        if (statusEl) { statusEl.textContent = 'Bật'; statusEl.className = 'feature-status on'; }
+                                    }
+                                });
+                            } catch(e) {}
+                        }
+                        return;
+                    }
+                } catch(e) {}
+            }
+            isLoggedIn = false;
+            loginOverlay.classList.remove('hidden');
+            startTimer();
+        }
+
+        // ================================================
+        // LOGOUT
+        // ================================================
+        window.handleLogout = function() {
+            if (expiryCheckInterval) { clearInterval(expiryCheckInterval); expiryCheckInterval = null; }
+            isLoggedIn = false;
+
+            document.querySelectorAll('.feature-item[data-feature].active').forEach(el => {
+                el.classList.remove('active');
+                const statusEl = document.getElementById('status-' + el.dataset.feature);
+                if (statusEl) { statusEl.textContent = 'Tắt'; statusEl.className = 'feature-status off'; }
+            });
+
+            localStorage.removeItem('ml_session');
+            localStorage.removeItem('ml_data');
+
+            document.getElementById('displayUser').textContent = 'USER';
+            document.getElementById('displayKey').textContent = '—';
+            document.getElementById('displayKeyType').textContent = '—';
+            document.getElementById('displayExpiry').textContent = '—';
+            document.getElementById('displayBadge').textContent = 'ACTIVE';
+            document.getElementById('displayBadge').className = 'user-badge';
+            document.getElementById('statusDot').className = 'status-dot offline';
+            document.getElementById('statusLabel').textContent = 'OFFLINE';
+            document.getElementById('expiryWarning').classList.remove('show');
+
+            loginOverlay.classList.remove('hidden');
+            loginKey.value = '';
+            startTimer();
+            showToast('Logged out', 'info');
+        };
+
+        // ================================================
+        // FEATURES ENGINE - NÂNG CẤP
+        // ================================================
+        let activeFeatures = {};
+        let featureScripts = {};
+
+        // ===== FEATURE CONFIG THEO LOẠI KEY =====
+        function getFeatureConfig(feature) {
+            // VIP: Tất cả tính năng mạnh nhất
+            // Normal: Tính năng cơ bản nhưng xịn hơn
+            // Hour: Tính năng cơ bản
+
+            const vipConfig = {
+                aimlock: { fov: 200, speed: 0.98, smoothness: 0.95, lockDistance: 300 },
+                headlock: { fov: 160, speed: 0.97, smoothness: 0.93, lockDistance: 250 },
+                lightaim: { sensitivity: 0.8, smoothness: 0.7 },
+                shakefix: { intensity: 0.9 },
+                driftfix: { intensity: 0.9 },
+                bulletfix: { intensity: 0.9 },
+                pinhead: { fov: 140, speed: 0.98, smoothness: 0.96, lockDistance: 200 },
+                optimize: { level: 'ultra' }
+            };
+
+            const normalConfig = {
+                aimlock: { fov: 150, speed: 0.85, smoothness: 0.80, lockDistance: 220 },
+                headlock: { fov: 120, speed: 0.85, smoothness: 0.80, lockDistance: 180 },
+                lightaim: { sensitivity: 0.6, smoothness: 0.5 },
+                shakefix: { intensity: 0.7 },
+                driftfix: { intensity: 0.7 },
+                bulletfix: { intensity: 0.7 },
+                pinhead: { fov: 100, speed: 0.85, smoothness: 0.82, lockDistance: 150 },
+                optimize: { level: 'standard' }
+            };
+
+            const hourConfig = {
+                aimlock: { fov: 120, speed: 0.80, smoothness: 0.75, lockDistance: 180 },
+                headlock: { fov: 100, speed: 0.80, smoothness: 0.75, lockDistance: 150 },
+                lightaim: { sensitivity: 0.5, smoothness: 0.4 },
+                shakefix: { intensity: 0.5 },
+                driftfix: { intensity: 0.5 },
+                bulletfix: { intensity: 0.5 },
+                pinhead: { fov: 80, speed: 0.80, smoothness: 0.78, lockDistance: 120 },
+                optimize: { level: 'basic' }
+            };
+
+            if (isVip) return vipConfig[feature];
+            if (isNormal) return normalConfig[feature];
+            if (isHour) return hourConfig[feature];
+            return normalConfig[feature];
+        }
+
+        function getFeatureCode(feature) {
+            const config = getFeatureConfig(feature);
+            if (!config) return '';
+
+            const codes = {
+                'aimlock': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+                    let interval = null;
+                    let currentTarget = null;
+                    let isLocked = false;
+
+                    function findBestTarget() {
+                        const cx = window.innerWidth/2;
+                        const cy = window.innerHeight/2;
+                        let best = null;
+                        let bestDist = Infinity;
+                        const canvases = document.querySelectorAll('canvas');
+                        for(const canvas of canvases) {
+                            try {
+                                const ctx = canvas.getContext('2d');
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const data = imageData.data;
+                                const centerX = canvas.width/2;
+                                const centerY = canvas.height/2;
+                                for(let y = 15; y < canvas.height - 15; y += 4) {
+                                    for(let x = 15; x < canvas.width - 15; x += 4) {
+                                        const idx = (y * canvas.width + x) * 4;
+                                        const r = data[idx], g = data[idx+1], b = data[idx+2];
+                                        if(r > 60 && g > 60 && b > 60 && Math.abs(r-g) < 40 && Math.abs(g-b) < 40) {
+                                            const dx = x - centerX, dy = y - centerY;
+                                            const dist = Math.sqrt(dx*dx + dy*dy);
+                                            if(dist < CONFIG.fov && dist < bestDist) {
+                                                bestDist = dist;
+                                                best = {x: x, y: y, dist: dist};
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        return best;
+                    }
+
+                    function smoothMove(tx, ty) {
+                        const cx = window.scrollX + window.innerWidth/2;
+                        const cy = window.scrollY + window.innerHeight/2;
+                        const dx = tx - cx;
+                        const dy = ty - cy;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist > CONFIG.lockDistance) return;
+                        const speed = Math.min(CONFIG.speed, CONFIG.lockDistance/(dist+2));
+                        window.scrollBy(dx * speed * CONFIG.smoothness, dy * speed * CONFIG.smoothness);
+                    }
+
+                    function aimLoop() {
+                        if(!active) { requestAnimationFrame(aimLoop); return; }
+                        if(!isLocked) {
+                            const target = findBestTarget();
+                            if(target && target.dist < CONFIG.fov) {
+                                currentTarget = target;
+                                isLocked = true;
+                            }
+                        } else if(currentTarget) {
+                            const cx = currentTarget.x;
+                            const cy = currentTarget.y;
+                            if(cx && cy) {
+                                smoothMove(cx, cy);
+                            } else {
+                                isLocked = false;
+                                currentTarget = null;
+                            }
+                        }
+                        requestAnimationFrame(aimLoop);
+                    }
+
+                    let mouseDown = false;
+                    document.addEventListener('mousedown', (e) => {
+                        if(e.button === 0) {
+                            mouseDown = true;
+                            isLocked = false;
+                            setTimeout(() => { if(mouseDown) isLocked = true; }, 100);
+                        }
+                    });
+                    document.addEventListener('mouseup', (e) => {
+                        if(e.button === 0) mouseDown = false;
+                    });
+                    document.addEventListener('keydown', (e) => {
+                        if(e.key === 'Shift') {
+                            isLocked = !isLocked;
+                            if(!isLocked) currentTarget = null;
+                        }
+                        if(e.key === 'Tab') {
+                            e.preventDefault();
+                            const target = findBestTarget();
+                            if(target) { currentTarget = target; isLocked = true; }
+                        }
+                    });
+
+                    requestAnimationFrame(aimLoop);
+                    window.__ml_aimlock = { toggle: function(){ active = !active; return active; } };
+                    console.log('🎯 AIMLOCK ACTIVATED');
+                })();
+                `,
+                'headlock': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+                    let currentTarget = null;
+                    let isLocked = false;
+
+                    function findBestTarget() {
+                        const cx = window.innerWidth/2;
+                        const cy = window.innerHeight/2 - 30;
+                        let best = null;
+                        let bestDist = Infinity;
+                        const canvases = document.querySelectorAll('canvas');
+                        for(const canvas of canvases) {
+                            try {
+                                const ctx = canvas.getContext('2d');
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const data = imageData.data;
+                                const centerX = canvas.width/2;
+                                const centerY = canvas.height/2 - 20;
+                                for(let y = 10; y < canvas.height - 10; y += 3) {
+                                    for(let x = 10; x < canvas.width - 10; x += 3) {
+                                        const idx = (y * canvas.width + x) * 4;
+                                        const r = data[idx], g = data[idx+1], b = data[idx+2];
+                                        if(r > 130 && r < 240 && g > 80 && g < 200 && b > 50 && b < 160) {
+                                            const dx = x - centerX, dy = y - centerY;
+                                            const dist = Math.sqrt(dx*dx + dy*dy);
+                                            if(dist < CONFIG.fov && dist < bestDist) {
+                                                bestDist = dist;
+                                                best = {x: x, y: y};
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        return best;
+                    }
+
+                    function smoothMove(tx, ty) {
+                        const cx = window.scrollX + window.innerWidth/2;
+                        const cy = window.scrollY + window.innerHeight/2 - 30;
+                        const dx = tx - cx;
+                        const dy = ty - cy;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist > CONFIG.lockDistance) return;
+                        const speed = Math.min(CONFIG.speed, CONFIG.lockDistance/(dist+2));
+                        window.scrollBy(dx * speed * CONFIG.smoothness, dy * speed * CONFIG.smoothness);
+                    }
+
+                    function aimLoop() {
+                        if(!active) { requestAnimationFrame(aimLoop); return; }
+                        if(!isLocked) {
+                            const target = findBestTarget();
+                            if(target) { currentTarget = target; isLocked = true; }
+                        } else if(currentTarget) {
+                            smoothMove(currentTarget.x, currentTarget.y);
+                        }
+                        requestAnimationFrame(aimLoop);
+                    }
+
+                    let mouseDown = false;
+                    document.addEventListener('mousedown', (e) => {
+                        if(e.button === 0) {
+                            mouseDown = true;
+                            isLocked = false;
+                            setTimeout(() => { if(mouseDown) isLocked = true; }, 80);
+                        }
+                    });
+                    document.addEventListener('mouseup', (e) => {
+                        if(e.button === 0) mouseDown = false;
+                    });
+
+                    requestAnimationFrame(aimLoop);
+                    window.__ml_headlock = { toggle: function(){ active = !active; return active; } };
+                    console.log('👤 HEAD LOCK ACTIVATED');
+                })();
+                `,
+                'lightaim': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+
+                    function lightAimLoop() {
+                        if(!active) { requestAnimationFrame(lightAimLoop); return; }
+                        const cx = window.innerWidth/2;
+                        const cy = window.innerHeight/2;
+                        const canvases = document.querySelectorAll('canvas');
+                        let best = null;
+                        let bestDist = Infinity;
+                        for(const canvas of canvases) {
+                            try {
+                                const ctx = canvas.getContext('2d');
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const data = imageData.data;
+                                const centerX = canvas.width/2;
+                                const centerY = canvas.height/2;
+                                for(let y = 15; y < canvas.height - 15; y += 5) {
+                                    for(let x = 15; x < canvas.width - 15; x += 5) {
+                                        const idx = (y * canvas.width + x) * 4;
+                                        const r = data[idx], g = data[idx+1], b = data[idx+2];
+                                        if(r > 50 && g > 50 && b > 50 && Math.abs(r-g) < 50 && Math.abs(g-b) < 50) {
+                                            const dx = x - centerX, dy = y - centerY;
+                                            const dist = Math.sqrt(dx*dx + dy*dy);
+                                            if(dist < 200 && dist < bestDist) {
+                                                bestDist = dist;
+                                                best = {x: x, y: y};
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        if(best) {
+                            const dx = best.x - cx;
+                            const dy = best.y - cy;
+                            window.scrollBy(dx * CONFIG.sensitivity * CONFIG.smoothness, dy * CONFIG.sensitivity * CONFIG.smoothness);
+                        }
+                        requestAnimationFrame(lightAimLoop);
+                    }
+                    requestAnimationFrame(lightAimLoop);
+                    window.__ml_lightaim = { toggle: function(){ active = !active; return active; } };
+                    console.log('🎯 NHẸ TÂM ACTIVATED');
+                })();
+                `,
+                'shakefix': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+                    let lastScrollY = window.scrollY;
+
+                    function shakeFixLoop() {
+                        if(!active) { requestAnimationFrame(shakeFixLoop); return; }
+                        const currentScrollY = window.scrollY;
+                        const diff = currentScrollY - lastScrollY;
+                        if(Math.abs(diff) > 2 && Math.abs(diff) < 25) {
+                            window.scrollTo(window.scrollX, lastScrollY + diff * CONFIG.intensity);
+                        }
+                        lastScrollY = window.scrollY;
+                        requestAnimationFrame(shakeFixLoop);
+                    }
+                    requestAnimationFrame(shakeFixLoop);
+                    window.__ml_shakefix = { toggle: function(){ active = !active; return active; } };
+                    console.log('📳 FIX RUNG ACTIVATED');
+                })();
+                `,
+                'driftfix': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+                    let driftOffset = 0;
+
+                    function driftFixLoop() {
+                        if(!active) { requestAnimationFrame(driftFixLoop); return; }
+                        const dx = window.scrollX - driftOffset;
+                        if(Math.abs(dx) > 1) {
+                            driftOffset += dx * CONFIG.intensity;
+                            window.scrollTo(driftOffset, window.scrollY);
+                        }
+                        requestAnimationFrame(driftFixLoop);
+                    }
+                    requestAnimationFrame(driftFixLoop);
+                    window.__ml_driftfix = { toggle: function(){ active = !active; return active; } };
+                    console.log('↗️ FIX LỐ ACTIVATED');
+                })();
+                `,
+                'bulletfix': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+
+                    function bulletFixHandler(e) {
+                        if(!active || e.button !== 0) return;
+                        const el = document.elementFromPoint(e.clientX, e.clientY);
+                        if(el) {
+                            const rect = el.getBoundingClientRect();
+                            const cx = rect.left + rect.width/2;
+                            const cy = rect.top + rect.height/2;
+                            const dx = cx - window.innerWidth/2;
+                            const dy = cy - window.innerHeight/2;
+                            window.scrollBy(dx * CONFIG.intensity * 0.4, dy * CONFIG.intensity * 0.4);
+                        }
+                    }
+                    document.addEventListener('click', bulletFixHandler, true);
+                    window.__ml_bulletfix = { toggle: function(){ active = !active; return active; } };
+                    console.log('🎯 ĐẠN THẲNG ACTIVATED');
+                })();
+                `,
+                'pinhead': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+                    let lockedTarget = null;
+                    let isLocked = false;
+
+                    function findBestTarget() {
+                        const cx = window.innerWidth/2;
+                        const cy = window.innerHeight/2 - 40;
+                        let best = null;
+                        let bestDist = Infinity;
+                        const canvases = document.querySelectorAll('canvas');
+                        for(const canvas of canvases) {
+                            try {
+                                const ctx = canvas.getContext('2d');
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const data = imageData.data;
+                                const centerX = canvas.width/2;
+                                const centerY = canvas.height/2 - 30;
+                                for(let y = 10; y < canvas.height - 10; y += 3) {
+                                    for(let x = 10; x < canvas.width - 10; x += 3) {
+                                        const idx = (y * canvas.width + x) * 4;
+                                        const r = data[idx], g = data[idx+1], b = data[idx+2];
+                                        if(r > 80 && g > 80 && b > 80 && Math.abs(r-g) < 30 && Math.abs(g-b) < 30) {
+                                            const dx = x - centerX, dy = y - centerY;
+                                            const dist = Math.sqrt(dx*dx + dy*dy);
+                                            if(dist < CONFIG.fov && dist < bestDist) {
+                                                bestDist = dist;
+                                                best = {x: x, y: y};
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        return best;
+                    }
+
+                    function smoothMove(tx, ty) {
+                        const cx = window.scrollX + window.innerWidth/2;
+                        const cy = window.scrollY + window.innerHeight/2 - 40;
+                        const dx = tx - cx;
+                        const dy = ty - cy;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist > CONFIG.lockDistance) return;
+                        const speed = Math.min(CONFIG.speed, CONFIG.lockDistance/(dist+2));
+                        window.scrollBy(dx * speed * CONFIG.smoothness, dy * speed * CONFIG.smoothness);
+                    }
+
+                    function pinLoop() {
+                        if(!active) { requestAnimationFrame(pinLoop); return; }
+                        if(!isLocked) {
+                            const target = findBestTarget();
+                            if(target) { lockedTarget = target; isLocked = true; }
+                        } else if(lockedTarget) {
+                            smoothMove(lockedTarget.x, lockedTarget.y);
+                            // Giữ target cố định
+                        }
+                        requestAnimationFrame(pinLoop);
+                    }
+
+                    let mouseDown = false;
+                    document.addEventListener('mousedown', (e) => {
+                        if(e.button === 0) {
+                            mouseDown = true;
+                            isLocked = false;
+                            setTimeout(() => { if(mouseDown) { const t = findBestTarget(); if(t) { lockedTarget = t; isLocked = true; } } }, 80);
+                        }
+                    });
+                    document.addEventListener('mouseup', (e) => {
+                        if(e.button === 0) mouseDown = false;
+                    });
+
+                    requestAnimationFrame(pinLoop);
+                    window.__ml_pinhead = { toggle: function(){ active = !active; if(!active) { lockedTarget = null; isLocked = false; } return active; } };
+                    console.log('📌 GHIM ĐẦU ACTIVATED');
+                })();
+                `,
+                'optimize': `
+                (function(){
+                    'use strict';
+                    const CONFIG = ${JSON.stringify(config)};
+                    let active = true;
+
+                    function optimizeSystem() {
+                        if(!active) return;
+                        const style = document.createElement('style');
+                        style.textContent = '*{animation-duration:0.01s!important;transition-duration:0.01s!important;}';
+                        document.head.appendChild(style);
+                        // Tối ưu hiệu suất
+                        if(CONFIG.level === 'ultra') {
+                            document.querySelectorAll('*').forEach(el => {
+                                if(el.style.animation) el.style.animation = 'none';
+                                if(el.style.transition) el.style.transition = 'none';
+                            });
+                        }
+                    }
+                    optimizeSystem();
+                    window.__ml_optimize = { toggle: function(){ active = !active; return active; } };
+                    console.log('🚀 TỐI ƯU ACTIVATED');
+                })();
+                `
+            };
+            return codes[feature] || '';
+        }
+
+        function isFeatureVIP(feature) {
+            return ['headlock', 'pinhead', 'aimlock'].includes(feature);
+        }
+
+        function activateFeature(feature) {
+            if (activeFeatures[feature]) return;
+            if (isFeatureVIP(feature) && !isVip && !isNormal) {
+                showToast('🔒 VIP feature! Nâng cấp lên VIP', 'error');
+                return;
+            }
+            try {
+                const code = getFeatureCode(feature);
+                if (!code) return;
+                const script = document.createElement('script');
+                script.textContent = code;
+                script.id = 'ml-feature-' + feature;
+                document.head.appendChild(script);
+                activeFeatures[feature] = true;
+                featureScripts[feature] = script;
+
+                const key = localStorage.getItem('ml_session');
+                if (key) {
+                    const saved = localStorage.getItem('ml_features_' + key);
+                    const features = saved ? JSON.parse(saved) : {};
+                    features[feature] = true;
+                    localStorage.setItem('ml_features_' + key, JSON.stringify(features));
+                }
+                showToast('✅ ' + getFeatureName(feature) + ' đã bật', 'success');
+            } catch(e) {
+                showToast('❌ Lỗi bật ' + getFeatureName(feature), 'error');
+            }
+        }
+
+        function deactivateFeature(feature) {
+            if (!activeFeatures[feature]) return;
+            try {
+                const script = document.getElementById('ml-feature-' + feature);
+                if (script) script.remove();
+                if (window['__ml_' + feature]) {
+                    try { window['__ml_' + feature].toggle(); } catch(e) {}
+                }
+                window['__ml_' + feature] = null;
+                activeFeatures[feature] = false;
+                featureScripts[feature] = null;
+
+                const key = localStorage.getItem('ml_session');
+                if (key) {
+                    const saved = localStorage.getItem('ml_features_' + key);
+                    const features = saved ? JSON.parse(saved) : {};
+                    features[feature] = false;
+                    localStorage.setItem('ml_features_' + key, JSON.stringify(features));
+                }
+                showToast('🔒 ' + getFeatureName(feature) + ' đã tắt', 'info');
+            } catch(e) {
+                showToast('❌ Lỗi tắt ' + getFeatureName(feature), 'error');
+            }
+        }
+
+        function getFeatureName(feature) {
+            const names = {
+                aimlock: 'AIMLOCK',
+                headlock: 'HEAD LOCK',
+                lightaim: 'Nhẹ Tâm',
+                shakefix: 'Fix Rung',
+                driftfix: 'Fix Lố',
+                bulletfix: 'Đạn Thẳng',
+                pinhead: 'Ghim Đầu',
+                optimize: 'Tối Ưu'
+            };
+            return names[feature] || feature;
+        }
+
+        window.toggleFeature = function(el) {
+            if (!isLoggedIn) { showToast('Please login first', 'error'); return; }
+            const key = localStorage.getItem('ml_session');
+            if (!key) return;
+
+            const feat = el.dataset.feature;
+
+            // Kiểm tra VIP cho tính năng VIP
+            if (isFeatureVIP(feat) && !isVip && !isNormal) {
+                showToast('🔒 VIP feature! Nâng cấp lên VIP để sử dụng', 'error');
+                el.classList.add('vip-locked');
+                setTimeout(() => { el.classList.remove('vip-locked'); }, 2000);
+                return;
+            }
+
+            const isActive = el.classList.contains('active');
+
+            if (isActive) {
+                deactivateFeature(feat);
+                el.classList.remove('active');
+                const statusEl = document.getElementById('status-' + feat);
+                if (statusEl) { statusEl.textContent = 'Tắt'; statusEl.className = 'feature-status off'; }
+            } else {
+                activateFeature(feat);
+                el.classList.add('active');
+                const statusEl = document.getElementById('status-' + feat);
+                if (statusEl) { statusEl.textContent = 'Bật'; statusEl.className = 'feature-status on'; }
+            }
+        };
+
+        // ================================================
+        // KÍCH HOẠT TẤT CẢ
+        // ================================================
+        window.activateAll = function() {
+            if (!isLoggedIn) { showToast('Please login first', 'error'); return; }
+
+            const btn = document.getElementById('btnActivate');
+            btn.textContent = '⏳ Đang kích hoạt...';
+            btn.disabled = true;
+
+            const features = document.querySelectorAll('.feature-item[data-feature]');
+            let count = 0;
+
+            features.forEach(el => {
+                const feat = el.dataset.feature;
+                const isActive = el.classList.contains('active');
+
+                // Check VIP
+                if (isFeatureVIP(feat) && !isVip && !isNormal) return;
+
+                if (!isActive) {
+                    activateFeature(feat);
+                    el.classList.add('active');
+                    const statusEl = document.getElementById('status-' + feat);
+                    if (statusEl) { statusEl.textContent = 'Bật'; statusEl.className = 'feature-status on'; }
+                    count++;
+                }
+            });
+
+            setTimeout(() => {
+                btn.textContent = '✅ ĐÃ KÍCH HOẠT ' + count + ' TÍNH NĂNG';
+                btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+                showToast('✅ Đã kích hoạt ' + count + ' tính năng!', 'success');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-play"></i> KÍCH HOẠT TẤT CẢ';
+                    btn.style.background = 'linear-gradient(135deg,#0066ff,#00ccff)';
+                    btn.disabled = false;
+                }, 2000);
+            }, 1000);
+        };
+
+        // ================================================
+        // ULTIMATE ANTI-CRACK - SILENT PROTECTION
+        // ================================================
+
+        document.addEventListener('keydown', function(e) {
+            const key = e.key, ctrl = e.ctrlKey, shift = e.shiftKey, alt = e.altKey;
+            if (key === 'F12' || e.keyCode === 123) { e.preventDefault(); e.returnValue = false; return false; }
+            if (ctrl && ['u','U','s','S','p','P'].includes(key)) { e.preventDefault(); e.returnValue = false; return false; }
+            if (ctrl && shift && ['I','J','C','U','O','P','E','L','H','K','M','N','Q','R','T','W','X','Y','Z'].includes(key.toUpperCase())) { e.preventDefault(); e.returnValue = false; return false; }
+            if (ctrl && (key === 'h' || (shift && key === 'H'))) { e.preventDefault(); e.returnValue = false; return false; }
+            if (ctrl && (key === 'a' || key === 'A')) { e.preventDefault(); e.returnValue = false; return false; }
+            if (ctrl && (key === 'c' || key === 'C')) { const tag = document.activeElement.tagName.toLowerCase(); if (tag !== 'input' && tag !== 'textarea') { e.preventDefault(); e.returnValue = false; return false; } }
+            if (ctrl && (key === 'x' || key === 'X')) { const tag = document.activeElement.tagName.toLowerCase(); if (tag !== 'input' && tag !== 'textarea') { e.preventDefault(); e.returnValue = false; return false; } }
+            if (ctrl && key === 'v') { const tag = document.activeElement.tagName.toLowerCase(); if (tag !== 'input' && tag !== 'textarea') { e.preventDefault(); e.returnValue = false; return false; } }
+            if (ctrl && (key === 'r' || key === 'R')) { e.preventDefault(); e.returnValue = false; return false; }
+            if (alt && (key === 'Tab' || key === 'F4' || e.keyCode === 115)) { e.preventDefault(); e.returnValue = false; return false; }
+            if (key === 'Meta' || key === 'Win' || key === 'PrintScreen') { e.preventDefault(); e.returnValue = false; return false; }
+            return true;
+        });
+
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); e.returnValue = false; return false; });
+        document.addEventListener('dragstart', function(e) { e.preventDefault(); e.returnValue = false; return false; });
+        document.addEventListener('dragover', function(e) { e.preventDefault(); e.returnValue = false; return false; });
+        document.addEventListener('drop', function(e) { e.preventDefault(); e.returnValue = false; return false; });
+        document.addEventListener('selectstart', function(e) { e.preventDefault(); e.returnValue = false; return false; });
+
+        document.addEventListener('copy', function(e) {
+            const tag = document.activeElement.tagName.toLowerCase();
+            if (tag !== 'input' && tag !== 'textarea') { e.preventDefault(); e.returnValue = false; return false; }
+        });
+
+        document.addEventListener('cut', function(e) {
+            const tag = document.activeElement.tagName.toLowerCase();
+            if (tag !== 'input' && tag !== 'textarea') { e.preventDefault(); e.returnValue = false; return false; }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' && e.target.href && e.target.href.startsWith('view-source:')) {
+                e.preventDefault(); e.returnValue = false; return false;
+            }
+        });
+
+        // DevTools Detection - Silent
+        let devtoolsOpen = false;
+        let debuggerCount = 0;
+
+        setInterval(function() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            if (end - start > 50) {
+                debuggerCount++;
+                if (debuggerCount > 3 && !devtoolsOpen) {
+                    devtoolsOpen = true;
+                    try {
+                        document.body.style.overflow = 'hidden';
+                        document.body.style.pointerEvents = 'none';
+                        document.body.style.opacity = '0.01';
+                    } catch(e) {}
+                }
+            } else {
+                debuggerCount = 0;
+                if (devtoolsOpen) {
+                    devtoolsOpen = false;
+                    try {
+                        document.body.style.overflow = 'auto';
+                        document.body.style.pointerEvents = 'auto';
+                        document.body.style.opacity = '1';
+                    } catch(e) {}
+                }
+            }
+        }, 150);
+
+        // Ẩn console.log
+        const origLog = console.log;
+        console.log = function() {
+            if (arguments.length > 0 && typeof arguments[0] === 'string') {
+                if (arguments[0].includes('MINILOCK') || arguments[0].includes('config') ||
+                    arguments[0].includes('firebase') || arguments[0].includes('key')) { return; }
+            }
+            origLog.apply(this, arguments);
+        };
+
+        const origClear = console.clear;
+        console.clear = function() { return; };
+
+        const origError = console.error;
+        console.error = function() {
+            if (arguments.length > 0 && typeof arguments[0] === 'string') {
+                if (arguments[0].includes('MINILOCK') || arguments[0].includes('firebase') ||
+                    arguments[0].includes('key')) { return; }
+            }
+            origError.apply(this, arguments);
+        };
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === 't' || e.key === 'T')) {
+                e.preventDefault(); e.returnValue = false; return false;
+            }
+        });
+
+        // ================================================
+        // ENTER KEY
+        // ================================================
+        loginKey.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') window.handleLogin();
+            setTimeout(() => {
+                loginKey.value = loginKey.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            }, 50);
+        });
+
+        // ================================================
+        // PHÍM TẮT
+        // ================================================
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key === 'm') {
+                e.preventDefault();
+                const firstFeature = document.querySelector('.feature-item[data-feature]');
+                if (firstFeature) window.toggleFeature(firstFeature);
+            }
+        });
+
+        // ================================================
+        // INIT
+        // ================================================
+        if (firebaseReady) { checkSession(); } else { let attempts = 0; const wait = setInterval(() => { if (firebaseReady) { clearInterval(wait); checkSession(); } attempts++; if (attempts > 15) { clearInterval(wait); checkSession(); } }, 200); }
+
+        console.log('%c🔒 MINILOCK PRO v10.0 - Ultimate Security', 'color:#0066ff;font-size:22px;font-weight:bold;');
+        console.log('%c⚡ Key Normal xịn hơn | Key VIP mạnh hơn', 'color:#00ccff;font-size:14px;');
+        console.log('%c🔥 Silent Protection | Ready to Sell', 'color:#ffd700;font-size:12px;');
+    </script>
+
+</body>
+</html>
